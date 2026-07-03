@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Java / Maven / Gradle
+target/
+build/
+*.class
+*.jar
+.gradle/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Node / frontend
+node_modules/
+dist/
+*.local
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log

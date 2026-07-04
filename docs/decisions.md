@@ -2,6 +2,18 @@
 
 Rzeczy, których nie widać z kodu. Najnowsze na górze.
 
+## 2026-07-04 — Silnik walki (Faza 1)
+
+- **Eventy jako kręgosłup.** `TurnResolver.resolve` zwraca `List<BattleEvent>`; front i replay renderują wyłącznie z eventów, nie liczą nic sami. Eventy samowystarczalne (np. `Damage` niesie `remainingHp`).
+- **Determinizm przez wstrzykiwany `Rng`.** Kolejność wywołań RNG jest stała i celowa: przy ruchu `accuracy → crit → random`, przy kolejności tury `speed tie`. Testy dają fake RNG i liczą wynik ręcznie.
+- **`Stats` (baza z dexu) vs `BattleStats` (przeliczone na poziom).** Dwa typy, żeby nie mieszać wartości bazowych z bojowymi. `BattlePokemon` = klasa (mutable HP/status), nie record.
+- **`DamageResult` zamiast gołego int.** Niesie `crit`, `effectiveness`, `noEffect()` (immunity) — pod eventy i przyszłe komunikaty.
+- **Statusy: tylko tick w MVP.** Non-volatile (max jeden), TOX eskaluje. Blokada ruchu (SLP/FRZ/PAR) i modyfikacja statów (BRN/PAR) odłożone — wejdą z pełną integracją w resolverze.
+- **`TurnResolver` bezstanowy (jak `DamageCalculator`).** Logika osobno od stanu (`Battle`). Kolejność akcji: SWITCH przed MOVE, dalej priority → speed → RNG tie.
+- **Warstwowa walidacja.** Rekordy akcji odsiewają bzdury bez kontekstu (`index < 0`); legalność względem stanu (PP>0, cel switcha żyje) waliduje resolver/serwer. Serwer autorytatywny.
+- **Skróty MVP do domknięcia później:** brak walidacji obu akcji *przed* wykonaniem (polega na guardach + serwerze) i brak wymuszonego switcha po faincie.
+- **Styl komentarzy:** `/** */` dla nagłówka typu i publicznego API, `//` dla notek implementacyjnych.
+
 ## 2026-07-03 — Macierz typów
 
 - **Efektywności typów w JSON** (`engine/src/main/resources/type-chart.json`), nie w kodzie. Same wyjątki (nie-1.0); default 1.0 wypełnia `TypeChart`. Dane oddzielone od logiki, edytowalne bez rekompilacji.

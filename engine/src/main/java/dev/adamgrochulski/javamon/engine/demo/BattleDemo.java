@@ -1,0 +1,84 @@
+package dev.adamgrochulski.javamon.engine.demo;
+
+import dev.adamgrochulski.javamon.engine.battle.Battle;
+import dev.adamgrochulski.javamon.engine.battle.BattleEvent;
+import dev.adamgrochulski.javamon.engine.battle.BattleSide;
+import dev.adamgrochulski.javamon.engine.battle.MoveAction;
+import dev.adamgrochulski.javamon.engine.battle.TurnResolver;
+import dev.adamgrochulski.javamon.engine.damage.TypeChart;
+import dev.adamgrochulski.javamon.engine.model.BattlePokemon;
+import dev.adamgrochulski.javamon.engine.model.Move;
+import dev.adamgrochulski.javamon.engine.model.MoveCategory;
+import dev.adamgrochulski.javamon.engine.model.Stats;
+import dev.adamgrochulski.javamon.engine.model.StatusCondition;
+import dev.adamgrochulski.javamon.engine.model.Type;
+import dev.adamgrochulski.javamon.engine.rng.RandomRng;
+import dev.adamgrochulski.javamon.engine.rng.Rng;
+
+import java.util.List;
+
+/**
+ * Headless demo — silnik gra sam ze sobą i wypisuje przebieg na konsolę.
+ * Obaj gracze zawsze używają ruchu 0; walka toczy się aż ktoś padnie.
+ * Seed RNG stały, więc przebieg jest powtarzalny.
+ */
+public final class BattleDemo {
+
+    public static void main(String[] args) {
+        TypeChart chart = new TypeChart();
+        Rng rng = new RandomRng(42);
+
+        BattlePokemon charizard = new BattlePokemon(
+                "Charizard", new Stats(78, 84, 78, 109, 85, 100),
+                Type.FIRE, Type.FLYING, 50,
+                List.of(new Move("Flamethrower", Type.FIRE, MoveCategory.SPECIAL, 90, 100, 15, 0)));
+
+        BattlePokemon venusaur = new BattlePokemon(
+                "Venusaur", new Stats(80, 82, 83, 100, 100, 80),
+                Type.GRASS, Type.POISON, 50,
+                List.of(new Move("Sludge Bomb", Type.POISON, MoveCategory.PHYSICAL, 90, 100, 10, 0)));
+
+        // Dla pokazania eskalacji TOX — Venusaur wchodzi ciężko zatruty.
+        venusaur.applyStatus(StatusCondition.TOX);
+
+        Battle battle = new Battle(
+                new BattleSide(List.of(charizard)),
+                new BattleSide(List.of(venusaur)),
+                rng, chart);
+
+        System.out.println("=== Javamon — headless demo ===");
+        System.out.println("Charizard (FIRE/FLYING) vs Venusaur (GRASS/POISON, zatruty TOX)\n");
+
+        while (!battle.isOver()) {
+            System.out.println("-- Tura " + battle.getTurn() + " --");
+            List<BattleEvent> events = TurnResolver.resolve(battle, new MoveAction(0), new MoveAction(0));
+            for (BattleEvent e : events) {
+                System.out.println("  " + describe(e));
+            }
+            System.out.println();
+        }
+    }
+
+    private static String describe(BattleEvent e) {
+        return switch (e) {
+            case BattleEvent.MoveUsed m   -> m.user().name() + " używa " + m.moveName();
+            case BattleEvent.MoveMissed m -> m.user().name() + " chybia (" + m.moveName() + ")";
+            case BattleEvent.Damage d     -> d.target().name() + " obrywa " + d.damage()
+                    + " (zostaje " + d.remainingHp() + " HP)" + eff(d.effectiveness()) + (d.crit() ? " KRYTYK!" : "");
+            case BattleEvent.NoEffect n   -> "Brak efektu na " + n.target().name();
+            case BattleEvent.StatusTick t -> t.who().name() + " cierpi od " + t.status()
+                    + " (-" + t.damage() + ", zostaje " + t.remainingHp() + " HP)";
+            case BattleEvent.Faint f      -> f.who().name() + " pada!";
+            case BattleEvent.Switch s     -> s.out().name() + " schodzi, wchodzi " + s.in().name();
+            case BattleEvent.Forfeit f    -> f.who() + " się poddaje";
+            case BattleEvent.BattleEnd b  -> ">>> KONIEC — " + (b.winner() == null ? "remis" : "wygrywa " + b.winner());
+        };
+    }
+
+    private static String eff(double effectiveness) {
+        if (effectiveness == 0.0) return "";
+        if (effectiveness > 1.0) return " (super skuteczne!)";
+        if (effectiveness < 1.0) return " (mało skuteczne)";
+        return "";
+    }
+}

@@ -1,5 +1,8 @@
 package dev.adamgrochulski.javamon.engine;
 
+import java.util.List;
+import java.util.Objects;
+
 /**
  * Instancja Pokémona na polu walki. Klasa, nie record — bo currentHp
  * zmienia się w trakcie walki. Reszta (base, typy, level, derived) jest stała.
@@ -15,11 +18,12 @@ public class BattlePokemon {
 
     // Staty przeliczone na level (liczone raz w konstruktorze).
     private final BattleStats derived;
+    private final List<MoveSlot> moves;
 
     // Jedyny stan zmienny na tym etapie — spada od obrażeń.
     private int currentHp;
 
-    public BattlePokemon(String name, Stats base, Type primary, Type secondary, int level){
+    public BattlePokemon(String name, Stats base, Type primary, Type secondary, int level, List<Move> moves){
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("name nie może być puste");
         }
@@ -47,6 +51,28 @@ public class BattlePokemon {
         this.derived = BattleStats.fromBase(base, level);
 
         currentHp = derived.maxHp();
+
+        if(moves == null) {
+            throw new IllegalArgumentException("moveset jest wymagany");
+        }
+
+        if(moves.isEmpty()) {
+            throw new IllegalArgumentException("moveset musi mieć co najmniej 1 ruch");
+        }
+
+        if(moves.size() > 4) {
+            throw new IllegalArgumentException("moveset: max 4 ruchy, było: " + moves.size());
+        }
+
+        if(moves.stream()
+                .anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("moveset nie może zawierać null");
+        }
+
+        List<MoveSlot> slots = moves.stream()
+                .map(MoveSlot::new).toList();
+
+        this.moves = List.copyOf(slots);
     }
 
     public String getName() { return name; }

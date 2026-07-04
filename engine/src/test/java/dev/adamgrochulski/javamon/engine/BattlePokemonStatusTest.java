@@ -2,6 +2,8 @@ package dev.adamgrochulski.javamon.engine;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,9 +12,11 @@ class BattlePokemonStatusTest {
 
     // base hp 105, level 100 -> maxHp = (2*105*100)/100 + 100 + 10 = 320.
     // 320/8 = 40 (PSN), 320/16 = 20 (BRN, TOX pierwszy tick).
+    private static final Move TACKLE = new Move("Tackle", Type.NORMAL, MoveCategory.PHYSICAL, 40, 100, 35, 0);
+
     private static BattlePokemon poke() {
         Stats base = new Stats(105, 100, 100, 100, 100, 100);
-        return new BattlePokemon("Test", base, Type.NORMAL, null, 100);
+        return new BattlePokemon("Test", base, Type.NORMAL, null, 100, List.of(TACKLE));
     }
 
     @Test
@@ -81,7 +85,7 @@ class BattlePokemonStatusTest {
     void damagingStatusAlwaysDealsAtLeastOne() {
         // maxHp = (2*1*1)/100 + 1 + 10 = 11; 11/16 = 0 -> min 1
         Stats base = new Stats(1, 1, 1, 1, 1, 1);
-        BattlePokemon frail = new BattlePokemon("Frail", base, Type.NORMAL, null, 1);
+        BattlePokemon frail = new BattlePokemon("Frail", base, Type.NORMAL, null, 1, List.of(TACKLE));
         frail.applyStatus(StatusCondition.BRN);
 
         assertEquals(1, frail.applyEndOfTurnDamage());

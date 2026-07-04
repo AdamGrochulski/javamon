@@ -67,12 +67,14 @@ HP, Attack, Defense, Sp.Attack, Sp.Defense, Speed
 
 | Status | Efekt |
 |--------|-------|
-| BRN | -50% Attack, -1/8 HP co turę |
+| BRN | -50% Attack, -1/16 HP co turę |
 | PSN | -1/8 HP co turę |
 | PAR | -50% Speed, 25% szansa na pominięcie tury |
 | TOX | (Toxic) eskalujące obrażenia: -1/16, -2/16, -3/16... HP co turę |
 | SLP | 1–3 tury bez możliwości ataku |
 | FRZ | nie może atakować, 20% szansa na odtajanie |
+
+> **Stan (Faza 1):** zaimplementowany tick końca tury (BRN 1/16, PSN 1/8, TOX eskalujący). Blokada ruchu (SLP/FRZ/PAR) i modyfikacja statów (BRN -atak, PAR -speed) — do domknięcia z pełną integracją w resolverze.
 
 ### Formuła obrażeń (uproszczona)
 
@@ -80,9 +82,11 @@ HP, Attack, Defense, Sp.Attack, Sp.Defense, Speed
 Damage = ((2 * Level / 5 + 2) * Power * (Atk / Def) / 50 + 2)
          * TypeEffectiveness
          * STAB        (1.5 jeśli typ ruchu = typ Pokémona)
+         * CriticalHit (1.5 przy krytyku, ~6% szansa)
          * Random      (0.85–1.0)
-         * CriticalHit (2.0 przy krytyku, ~6.25% szansa)
 ```
+
+Cała losowość (krytyk, random roll, celność, speed tie) idzie przez wstrzykiwany interfejs `Rng` — testy dostają fake/seeded RNG i liczą wynik deterministycznie. Kolejność wywołań RNG jest ustalona (accuracy → crit → random).
 
 ### Celność i PP
 
@@ -147,14 +151,17 @@ Action {
 **Serwer → Klient:**
 ```json
 { "type": "MOVE_USED", "attacker": "Charizard", "move": "Flamethrower", "target": "Blastoise" }
-{ "type": "DAMAGE", "target": "Blastoise", "amount": 87, "hpLeft": 123, "hpMax": 310 }
-{ "type": "STATUS_APPLIED", "target": "Blastoise", "status": "BRN" }
+{ "type": "MOVE_MISSED", "attacker": "Charizard", "move": "Flamethrower" }
+{ "type": "DAMAGE", "target": "Blastoise", "amount": 87, "hpLeft": 123, "hpMax": 310, "crit": false, "effectiveness": 2.0 }
+{ "type": "NO_EFFECT", "target": "Gengar" }
+{ "type": "STATUS_TICK", "target": "Blastoise", "status": "PSN", "amount": 20, "hpLeft": 103 }
+{ "type": "SWITCH", "player": "player1", "out": "Charizard", "in": "Blastoise" }
 { "type": "FAINTED", "pokemon": "Blastoise" }
 { "type": "GAME_OVER", "winner": "player1" }
 { "type": "TURN_START", "turn": 4 }
 ```
 
-Frontend odtwarza eventy sekwencyjnie z animacją (jak Pokemon Showdown robi swój battle log).
+Zestaw odpowiada eventom silnika (`BattleEvent`: `MoveUsed`, `MoveMissed`, `Damage`, `NoEffect`, `StatusTick`, `Switch`, `Faint`, `Forfeit`, `BattleEnd`) — warstwa WS mapuje je na JSON. Frontend odtwarza sekwencyjnie z animacją (jak Pokemon Showdown robi swój battle log).
 
 ---
 
@@ -212,13 +219,19 @@ Tackle, Body Slam, Flamethrower, Fire Blast, Surf, Hydro Pump, Thunderbolt, Thun
 
 ## Plan pracy — fazy
 
-### Faza 1: Core engine (tydzień 1–2)
-- [ ] Model danych: Pokemon, Move, Type, BattleSession
-- [ ] Macierz efektywności typów
-- [ ] Formuła obrażeń + STAB + krytyk + random
-- [ ] Status effects — apply + tick
-- [ ] Turn resolver: priority sort, speed sort, execute
-- [ ] Unit testy silnika (bez Spring)
+### Faza 1: Core engine (tydzień 1–2) — ✅ ukończona
+
+Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`. 63 testy jednostkowe (bez Springa).
+
+- [x] Model danych: Type, Move (+priority/PP), Stats/BattleStats, BattlePokemon, Battle/BattleSide
+- [x] Macierz efektywności typów (data-driven, `type-chart.json` + Jackson)
+- [x] Formuła obrażeń + STAB + krytyk + random (wstrzykiwany `Rng`, `DamageResult`)
+- [x] Status effects — apply + tick (BRN/PSN/TOX); *blokada ruchu i mod statów odłożone*
+- [x] Turn resolver: kolejność (switch>move, priority→speed→RNG), wykonanie MOVE/SWITCH/FORFEIT, ticki, wynik
+- [x] Unit testy silnika (bez Spring)
+- [x] Eventy walki (`BattleEvent`) — podstawa renderu i replay
+
+**Do domknięcia w Fazie 1.5 / przy integracji:** walidacja akcji względem stanu po stronie serwera, wymuszony switch po faincie, efekty ruchów statusowych, entry hazardy, złożone akcje (U-turn/Volt Switch), moves.json + loader.
 
 ### Faza 2: Backend API (tydzień 2–3)
 - [ ] Spring Boot setup, PostgreSQL schema, JPA entities

@@ -1,9 +1,12 @@
 package dev.adamgrochulski.javamon.engine;
 
+// Niezmienny szablon ruchu z dexu. Pozostałe PP w trakcie walki
+// żyją osobno (przy BattlePokemon) — tu jest tylko definicja.
 public record Move(
         String name, Type type, MoveCategory category,
         int power, int accuracy, int pp) {
 
+    // Walidacja przy tworzeniu — nielegalny ruch nie powstanie.
     public Move {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("nazwa ruchu nie może być pusta");

@@ -1,6 +1,8 @@
 package dev.adamgrochulski.javamon.engine;
 
-// Produkcyjny RNG. Konstruktor z seedem = powtarzalne walki (replay, testy).
+/**
+ * Produkcyjny RNG. Konstruktor z seedem = powtarzalne walki (replay, testy).
+ */
 public final class RandomRng implements Rng{
     private final java.util.Random random;
 

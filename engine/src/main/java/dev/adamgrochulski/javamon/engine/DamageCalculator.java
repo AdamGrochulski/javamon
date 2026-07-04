@@ -1,7 +1,9 @@
 package dev.adamgrochulski.javamon.engine;
 
-// Czysta funkcja liczenia obrażeń — nie mutuje niczego (takeDamage woła resolver wyżej).
-// TypeChart i Rng wstrzykiwane, więc test daje fake RNG i liczy wynik deterministycznie.
+/**
+ * Czysta funkcja liczenia obrażeń — nie mutuje niczego (takeDamage woła resolver wyżej).
+ * TypeChart i Rng wstrzykiwane, więc test daje fake RNG i liczy wynik deterministycznie.
+ */
 public final class DamageCalculator {
 
     private static final int CRIT_CHANCE_PERCENT = 6;

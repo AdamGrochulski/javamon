@@ -1,7 +1,9 @@
 package dev.adamgrochulski.javamon.engine;
 
-// Bazowe staty gatunku z dexu (niezmienne). Staty przeliczone na poziom
-// liczy BattleStats — tego rekordu nie mieszamy z wartościami walki.
+/**
+ * Bazowe staty gatunku z dexu (niezmienne). Staty przeliczone na poziom
+ * liczy BattleStats — tego rekordu nie mieszamy z wartościami walki.
+ */
 public record Stats(
         int hp,
         int attack, int defense,

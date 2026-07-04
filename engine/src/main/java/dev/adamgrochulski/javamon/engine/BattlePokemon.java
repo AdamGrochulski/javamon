@@ -134,5 +134,18 @@ public class BattlePokemon {
         return damage;
     }
 
+    public Move moveAt(int index) {
+        if(index < 0 || index >= moves.size()) {
+            throw new IllegalArgumentException("moveIndex poza zakresem: " + index);
+        }
+        return moves.get(index).getMove();
+    }
+
+    public Move useMove(int index) {
+        MoveSlot slot = moves.get(index);
+        slot.use();
+        return slot.getMove();
+    }
+
 
 }

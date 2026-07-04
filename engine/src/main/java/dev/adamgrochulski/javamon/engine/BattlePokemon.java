@@ -1,13 +1,17 @@
 package dev.adamgrochulski.javamon.engine;
 
-// Instancja Pokémona na polu walki. Klasa, nie record — bo currentHp
-// zmienia się w trakcie walki. Reszta (base, typy, level, derived) jest stała.
+/**
+ * Instancja Pokémona na polu walki. Klasa, nie record — bo currentHp
+ * zmienia się w trakcie walki. Reszta (base, typy, level, derived) jest stała.
+ */
 public class BattlePokemon {
     private final String name;
     private final Stats base;
     private final Type primary;
     private final Type secondary;   // null = jednotypowy
     private final int level;
+    private StatusCondition status = StatusCondition.NONE;
+    private int statusCounter;
 
     // Staty przeliczone na level (liczone raz w konstruktorze).
     private final BattleStats derived;
@@ -67,8 +71,42 @@ public class BattlePokemon {
 
     public int getSpeed() { return derived.speed(); }
 
+    public StatusCondition getStatus() { return status; }
+
+    public int getStatusCounter() { return statusCounter; }
+
     public boolean isFainted() { return currentHp <= 0; }
 
     // Obcięcie do 0 — HP nie schodzi poniżej zera.
     public void takeDamage(int dmg) { currentHp = Math.max(0, currentHp - dmg); }
+
+    public boolean applyStatus(StatusCondition condition) {
+        if(status != StatusCondition.NONE) {
+            return false;
+        }
+        this.status = condition;
+
+        if (status == StatusCondition.TOX) { statusCounter = 1; }
+
+        return true;
+    }
+
+    public int applyEndOfTurnDamage(){
+        // Status zadający ma min 1 obrażenia (przy niskim maxHp dzielenie dałoby 0).
+        int damage = switch (status) {
+            case PSN -> Math.max(1, getMaxHp() / 8);
+            case BRN -> Math.max(1, getMaxHp() / 16);
+            case TOX -> {
+                int d = Math.max(1, getMaxHp() * statusCounter / 16);
+                statusCounter++;   // eskalacja: następny tick mocniejszy
+                yield d;
+            }
+            default -> 0;   // NONE, PAR, SLP, FRZ — brak ticku obrażeń
+        };
+
+        takeDamage(damage);
+        return damage;
+    }
+
+
 }

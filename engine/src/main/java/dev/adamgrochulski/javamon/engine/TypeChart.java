@@ -6,6 +6,10 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 
+/**
+ * Macierz efektywności typów. Domyślnie 1.0, wyjątki wczytane z /type-chart.json.
+ * Indeksowana przez Type.ordinal() — patrz uwaga w Type.
+ */
 public class TypeChart {
 
     // Rekord type-chart.json
@@ -31,7 +35,7 @@ public class TypeChart {
         }
     }
 
-    // Public API: mnożnik dla pary (atak, obrona)
+    /** Mnożnik efektywności dla pary (typ atakującego, typ obrońcy). */
     public double multiplier(Type attacker, Type defender) {
         return chart[attacker.ordinal()][defender.ordinal()];
     }

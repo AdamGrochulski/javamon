@@ -1,0 +1,110 @@
+package dev.adamgrochulski.javamon.engine.battle;
+
+import dev.adamgrochulski.javamon.engine.model.*;
+import dev.adamgrochulski.javamon.engine.rng.*;
+import dev.adamgrochulski.javamon.engine.damage.*;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static dev.adamgrochulski.javamon.engine.battle.Player.P1;
+import static dev.adamgrochulski.javamon.engine.battle.Player.P2;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class TurnResolverExecuteMoveTest {
+
+    private static final Move TACKLE = new Move("Tackle", Type.NORMAL, MoveCategory.PHYSICAL, 100, 100, 10, 0);
+    private static final Move INACCURATE = new Move("Inaccurate", Type.NORMAL, MoveCategory.PHYSICAL, 100, 50, 10, 0);
+    private static final Move GROWL = new Move("Growl", Type.NORMAL, MoveCategory.STATUS, 0, 100, 40, 0);
+
+    // nextInt zawsze 100: accuracy(100) trafia, crit(6) nie, random(85..100) = 1.0.
+    // Przy ruchu accuracy 50 -> 100 <= 50 false -> pudło.
+    private static final Rng ROLL_100 = (min, max) -> 100;
+
+    private static BattlePokemon poke(Type type, int level, Move move) {
+        Stats base = new Stats(100, 100, 100, 100, 100, 100);
+        return new BattlePokemon("P", base, type, null, level, List.of(move));
+    }
+
+    private static Battle battle(BattlePokemon p1, BattlePokemon p2, Rng rng) {
+        return new Battle(new BattleSide(List.of(p1)), new BattleSide(List.of(p2)), rng, new TypeChart());
+    }
+
+    @Test
+    void hitDealsDamageAndEmitsMoveUsedThenDamage() {
+        // atak WATER, ruch NORMAL (brak STAB), obrońca WATER (eff 1.0), level 50 -> maxHp 160
+        // damage = 46 (jak w DamageCalculatorTest), remainingHp = 160 - 46 = 114
+        Battle b = battle(poke(Type.WATER, 50, TACKLE), poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(2, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+
+        BattleEvent.Damage dmg = assertInstanceOf(BattleEvent.Damage.class, events.get(1));
+        assertEquals(P2, dmg.target().player());
+        assertEquals(46, dmg.damage());
+        assertEquals(114, dmg.remainingHp());
+        assertEquals(114, b.side(P2).active().getCurrentHp()); // stan faktycznie zmieniony
+    }
+
+    @Test
+    void missEmitsMoveMissedAndDealsNoDamage() {
+        Battle b = battle(poke(Type.WATER, 50, INACCURATE), poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(2, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        assertInstanceOf(BattleEvent.MoveMissed.class, events.get(1));
+        assertEquals(b.side(P2).active().getMaxHp(), b.side(P2).active().getCurrentHp()); // HP nietknięte
+    }
+
+    @Test
+    void immunityEmitsNoEffectAndDealsNoDamage() {
+        // NORMAL vs GHOST = 0.0
+        Battle b = battle(poke(Type.WATER, 50, TACKLE), poke(Type.GHOST, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(2, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        assertInstanceOf(BattleEvent.NoEffect.class, events.get(1));
+        assertEquals(b.side(P2).active().getMaxHp(), b.side(P2).active().getCurrentHp());
+    }
+
+    @Test
+    void lethalHitEmitsFaintAfterDamage() {
+        // obrońca level 1 (maxHp 11, niska obrona) — ruch go zabija
+        Battle b = battle(poke(Type.WATER, 50, TACKLE), poke(Type.NORMAL, 1, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(3, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        assertInstanceOf(BattleEvent.Damage.class, events.get(1));
+        assertInstanceOf(BattleEvent.Faint.class, events.get(2));
+        assertTrue(b.side(P2).active().isFainted());
+        assertEquals(0, b.side(P2).active().getCurrentHp());
+    }
+
+    @Test
+    void statusMoveEmitsOnlyMoveUsed() {
+        Battle b = battle(poke(Type.WATER, 50, GROWL), poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(1, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        assertEquals(b.side(P2).active().getMaxHp(), b.side(P2).active().getCurrentHp());
+    }
+}

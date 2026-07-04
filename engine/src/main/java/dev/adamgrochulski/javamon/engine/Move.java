@@ -6,7 +6,7 @@ package dev.adamgrochulski.javamon.engine;
  */
 public record Move(
         String name, Type type, MoveCategory category,
-        int power, int accuracy, int pp) {
+        int power, int accuracy, int pp, int priority) {
 
     // Walidacja przy tworzeniu — nielegalny ruch nie powstanie.
     public Move {
@@ -24,6 +24,9 @@ public record Move(
         }
         if (category == MoveCategory.STATUS && power != 0) {
             throw new IllegalArgumentException("ruch STATUS nie może mieć power, było: " + power);
+        }
+        if (priority < -7 || priority > 5) {
+            throw new IllegalArgumentException("priority musi być w -7..5, było: " + priority);
         }
     }
 

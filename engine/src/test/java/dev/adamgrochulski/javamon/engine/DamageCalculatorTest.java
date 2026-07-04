@@ -3,6 +3,8 @@ package dev.adamgrochulski.javamon.engine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,11 +33,11 @@ class DamageCalculatorTest {
     // Base 100 we wszystkich statach, level 50 -> derived atk/def = 105.
     private static BattlePokemon poke(Type primary, Type secondary) {
         Stats base = new Stats(100, 100, 100, 100, 100, 100);
-        return new BattlePokemon("Test", base, primary, secondary, 50);
+        return new BattlePokemon("Test", base, primary, secondary, 50, List.of(physical(Type.NORMAL)));
     }
 
     private static Move physical(Type type) {
-        return new Move("Tackle", type, MoveCategory.PHYSICAL, 100, 100, 10);
+        return new Move("Tackle", type, MoveCategory.PHYSICAL, 100, 100, 10, 0);
     }
 
     @Test
@@ -70,7 +72,7 @@ class DamageCalculatorTest {
         BattlePokemon attacker = poke(Type.NORMAL, null);
         BattlePokemon defender = poke(Type.FIRE, null);
 
-        Move water = new Move("Bubble", Type.WATER, MoveCategory.PHYSICAL, 100, 100, 10);
+        Move water = new Move("Bubble", Type.WATER, MoveCategory.PHYSICAL, 100, 100, 10, 0);
         DamageResult result = DamageCalculator.calculate(attacker, defender, water, chart, NO_CRIT_MAX_ROLL);
 
         assertEquals(92, result.damage()); // (int)(46 * 2.0)
@@ -119,7 +121,7 @@ class DamageCalculatorTest {
         BattlePokemon attacker = poke(Type.WATER, null);
         BattlePokemon defender = poke(Type.WATER, null);
 
-        Move special = new Move("Water Gun", Type.NORMAL, MoveCategory.SPECIAL, 100, 100, 10);
+        Move special = new Move("Water Gun", Type.NORMAL, MoveCategory.SPECIAL, 100, 100, 10, 0);
         DamageResult result = DamageCalculator.calculate(attacker, defender, special, chart, NO_CRIT_MAX_ROLL);
 
         assertEquals(46, result.damage());
@@ -130,7 +132,7 @@ class DamageCalculatorTest {
         BattlePokemon attacker = poke(Type.WATER, null);
         BattlePokemon defender = poke(Type.WATER, null);
 
-        Move status = new Move("Growl", Type.NORMAL, MoveCategory.STATUS, 0, 100, 10);
+        Move status = new Move("Growl", Type.NORMAL, MoveCategory.STATUS, 0, 100, 10, 0);
         DamageResult result = DamageCalculator.calculate(attacker, defender, status, chart, NO_CRIT_MAX_ROLL);
 
         assertEquals(0, result.damage());

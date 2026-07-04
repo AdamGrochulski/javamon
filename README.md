@@ -22,6 +22,10 @@ mvn test
 
 Wymaga JDK 21+.
 
+## Demo
+
+`BattlePokemon` gra sam ze sobą i wypisuje przebieg walki na konsolę — klasa `dev.adamgrochulski.javamon.engine.demo.BattleDemo` (`main`), uruchamiana z IDE. Deterministyczne (seed RNG), pokazuje obrażenia, efektywność typów, krytyki i eskalację statusu TOX.
+
 ## Struktura
 
 - `engine/` — silnik walk, czysty Java, zero zależności od frameworka

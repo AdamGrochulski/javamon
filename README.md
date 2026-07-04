@@ -6,7 +6,9 @@ Projekt nauki: silnik i logikę piszę sam, warstwa po warstwie. Pełna koncepcj
 
 ## Stan
 
-Wczesna faza — silnik walk. Gotowe: typy + macierz efektywności (data-driven), staty, ruchy, wstrzykiwany RNG. Dalej: formuła obrażeń, statusy, turn resolver.
+Silnik walk (Faza 1) — kompletny, 63 testy jednostkowe. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), ruchy z PP i priority, wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random), statusy z tickiem końca tury (BRN/PSN/TOX), turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik) i eventy walki pod render/replay.
+
+Dalej: Faza 2 — Spring Boot, WebSocket, PostgreSQL/Redis owijające silnik.
 
 ## Stack
 
@@ -23,4 +25,8 @@ Wymaga JDK 21+.
 ## Struktura
 
 - `engine/` — silnik walk, czysty Java, zero zależności od frameworka
+  - `model` — dane i stan (typy, staty, ruchy, BattlePokemon)
+  - `rng` — wstrzykiwana losowość (determinizm)
+  - `damage` — macierz typów + kalkulator obrażeń
+  - `battle` — akcje, eventy, stan walki, turn resolver
 - `docs/` — koncept i dziennik decyzji

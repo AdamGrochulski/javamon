@@ -3,6 +3,9 @@ package dev.adamgrochulski.javamon.engine.battle;
 import dev.adamgrochulski.javamon.engine.damage.TypeChart;
 import dev.adamgrochulski.javamon.engine.rng.Rng;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 public class Battle {
     private final BattleSide side1;     // P1
     private final BattleSide side2;     // P2
@@ -43,5 +46,16 @@ public class Battle {
         if(p2Dead) return Player.P1;
         if(p1Dead) return Player.P2;
         return null;
+    }
+
+    public boolean needsReplacement(Player p) {
+        BattleSide side = side(p);
+        return side.active().isFainted() && !side.isDefeated();
+    }
+
+    public List<Player> awaitingReplacement() {
+        return Stream.of(Player.P1, Player.P2)
+                .filter(this::needsReplacement)
+                .toList();
     }
 }

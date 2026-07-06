@@ -221,7 +221,7 @@ Tackle, Body Slam, Flamethrower, Fire Blast, Surf, Hydro Pump, Thunderbolt, Thun
 
 ### Faza 1: Core engine (tydzień 1–2) — ✅ ukończona
 
-Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`. 63 testy jednostkowe (bez Springa).
+Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`. 70 testów jednostkowych (bez Springa).
 
 - [x] Model danych: Type, Move (+priority/PP), Stats/BattleStats, BattlePokemon, Battle/BattleSide
 - [x] Macierz efektywności typów (data-driven, `type-chart.json` + Jackson)
@@ -230,8 +230,9 @@ Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`
 - [x] Turn resolver: kolejność (switch>move, priority→speed→RNG), wykonanie MOVE/SWITCH/FORFEIT, ticki, wynik
 - [x] Unit testy silnika (bez Spring)
 - [x] Eventy walki (`BattleEvent`) — podstawa renderu i replay
+- [x] Wymuszony switch po faincie (`needsReplacement`/`awaitingReplacement` + `resolveReplacement`)
 
-**Do domknięcia w Fazie 1.5 / przy integracji:** walidacja akcji względem stanu po stronie serwera, wymuszony switch po faincie, efekty ruchów statusowych, entry hazardy, złożone akcje (U-turn/Volt Switch), moves.json + loader.
+**Do domknięcia w Fazie 1.5 / przy integracji:** walidacja akcji względem stanu po stronie serwera, efekty ruchów statusowych, entry hazardy, złożone akcje (U-turn/Volt Switch), moves.json + loader.
 
 ### Faza 2: Backend API (tydzień 2–3)
 - [ ] Spring Boot setup, PostgreSQL schema, JPA entities

@@ -131,6 +131,31 @@ class DamageCalculatorTest {
     }
 
     @Test
+    void burnHalvesPhysicalAttack() {
+        BattlePokemon attacker = poke(Type.WATER, null);
+        BattlePokemon defender = poke(Type.WATER, null);
+        attacker.applyStatus(StatusCondition.BRN);
+
+        // atk 105 -> BRN 52; base = 22*100*52/105/50+2 = 23 (połowa gołego 46)
+        DamageResult result = DamageCalculator.calculate(attacker, defender, physical(Type.NORMAL), chart, NO_CRIT_MAX_ROLL);
+
+        assertEquals(23, result.damage());
+    }
+
+    @Test
+    void burnDoesNotAffectSpecialAttack() {
+        BattlePokemon attacker = poke(Type.WATER, null);
+        BattlePokemon defender = poke(Type.WATER, null);
+        attacker.applyStatus(StatusCondition.BRN);
+
+        // BRN pali tylko fizyczne — special liczy się jak bez statusu (46)
+        Move special = new Move("Water Gun", Type.NORMAL, MoveCategory.SPECIAL, 100, 100, 10, 0);
+        DamageResult result = DamageCalculator.calculate(attacker, defender, special, chart, NO_CRIT_MAX_ROLL);
+
+        assertEquals(46, result.damage());
+    }
+
+    @Test
     void statusMoveDealsNoDamageButIsNotImmunity() {
         BattlePokemon attacker = poke(Type.WATER, null);
         BattlePokemon defender = poke(Type.WATER, null);

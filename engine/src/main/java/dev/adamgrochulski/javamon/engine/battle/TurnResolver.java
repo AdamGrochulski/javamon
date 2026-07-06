@@ -22,10 +22,17 @@ public final class TurnResolver {
     //    walidować intencję zanim zawoła resolve — to pierwsza linia anty-cheatu,
     //    guardy silnika to druga. Docelowo: walidacja obu akcji z góry (bez
     //    częściowej mutacji stanu gdy druga akcja okaże się nielegalna).
-    //  * Brak wymuszonego switcha po faincie — padły aktywny zostaje pusty do
-    //    przyszłej SwitchAction. Osobna faza decyzji, później.
+    //  * Zejście po faincie: resolve zostawia padły aktywny slot pusty i kończy
+    //    turę. Serwer między turami woła awaitingReplacement() i dla każdego
+    //    winnego gracza resolveReplacement(...). resolve broni się guardem —
+    //    nie rozliczy nowej tury, dopóki wisi wybór zejścia.
     public static List<BattleEvent> resolve(Battle battle, Action p1Action, Action p2Action) {
         List<BattleEvent> events = new ArrayList<>();
+
+        if(!battle.awaitingReplacement().isEmpty()) {
+            throw new IllegalStateException("Nie można rozliczyć tury - wisi wybór zejścia: "
+                    + battle.awaitingReplacement());
+        }
 
         // 1. FORFEIT — short-circuit, kończy walkę natychmiast
         if (p1Action instanceof ForfeitAction) {
@@ -71,6 +78,20 @@ public final class TurnResolver {
 
         // 8. Kolejna tura
         battle.nextTurn();
+        return events;
+    }
+
+    public static List<BattleEvent> resolveReplacement(Battle battle, Player player, SwitchAction action) {
+        if(!battle.needsReplacement(player)) {
+            throw new IllegalStateException("Gracz " + player + " nie musi wybierać zejścia");
+        }
+        List<BattleEvent> events = new ArrayList<>();
+
+        BattleEvent.PokemonRef out = ref(battle, player);
+        battle.side(player).switchTo(action.benchIndex());
+        BattleEvent.PokemonRef in = ref(battle, player);
+        events.add(new BattleEvent.Switch(out, in));
+
         return events;
     }
 

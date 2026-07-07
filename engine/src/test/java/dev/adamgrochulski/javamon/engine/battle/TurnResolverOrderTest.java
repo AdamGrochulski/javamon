@@ -95,4 +95,28 @@ class TurnResolverOrderTest {
         assertEquals(List.of(P1, P2),
                 TurnResolver.order(b, new SwitchAction(0), new SwitchAction(0)));
     }
+
+    @Test
+    void paralysisQuartersSpeedAndFlipsOrder() {
+        // P1 normalnie szybszy (205) ale PAR -> 205/4 = 51; P2 wolniejszy (85) wyprzedza
+        BattlePokemon p1 = poke(100, 0);
+        BattlePokemon p2 = poke(40, 0);
+        p1.applyStatus(StatusCondition.PAR);
+        Battle b = battle(p1, p2, ANY);
+
+        assertEquals(List.of(P2, P1),
+                TurnResolver.order(b, new MoveAction(0), new MoveAction(0)));
+    }
+
+    @Test
+    void paralysisCanCreateSpeedTieResolvedByRng() {
+        // P1 205 -> PAR 51; P2 base 23 -> speed 51 => remis, rozstrzyga RNG (TIE_P2 -> P2)
+        BattlePokemon p1 = poke(100, 0);
+        BattlePokemon p2 = poke(23, 0);
+        p1.applyStatus(StatusCondition.PAR);
+        Battle b = battle(p1, p2, TIE_P2);
+
+        assertEquals(List.of(P2, P1),
+                TurnResolver.order(b, new MoveAction(0), new MoveAction(0)));
+    }
 }

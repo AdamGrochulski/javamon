@@ -162,6 +162,12 @@ public final class TurnResolver {
         BattlePokemon atkMon = battle.side(attacker).active();
         BattlePokemon defMon = battle.side(defender).active();
 
+        if (atkMon.getStatus() == StatusCondition.PAR && battle.getRng().chance(25)) {
+            events.add(new BattleEvent.Immobilized(ref(battle, attacker),
+                    StatusCondition.PAR));
+            return;
+        }
+
         Move move = atkMon.useMove(action.moveIndex());
 
         events.add(new BattleEvent.MoveUsed(ref(battle, attacker), move.name()));

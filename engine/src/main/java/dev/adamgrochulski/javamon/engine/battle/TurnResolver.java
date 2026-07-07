@@ -5,6 +5,7 @@ import dev.adamgrochulski.javamon.engine.damage.DamageResult;
 import dev.adamgrochulski.javamon.engine.model.BattlePokemon;
 import dev.adamgrochulski.javamon.engine.model.Move;
 import dev.adamgrochulski.javamon.engine.model.MoveCategory;
+import dev.adamgrochulski.javamon.engine.model.StatusCondition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,7 @@ public final class TurnResolver {
     public static List<BattleEvent> resolve(Battle battle, Action p1Action, Action p2Action) {
         List<BattleEvent> events = new ArrayList<>();
 
-        if(!battle.awaitingReplacement().isEmpty()) {
+        if (!battle.awaitingReplacement().isEmpty()) {
             throw new IllegalStateException("Nie można rozliczyć tury - wisi wybór zejścia: "
                     + battle.awaitingReplacement());
         }
@@ -82,7 +83,7 @@ public final class TurnResolver {
     }
 
     public static List<BattleEvent> resolveReplacement(Battle battle, Player player, SwitchAction action) {
-        if(!battle.needsReplacement(player)) {
+        if (!battle.needsReplacement(player)) {
             throw new IllegalStateException("Gracz " + player + " nie musi wybierać zejścia");
         }
         List<BattleEvent> events = new ArrayList<>();
@@ -106,9 +107,18 @@ public final class TurnResolver {
         throw new IllegalStateException("priorityOf wołane nie dla MoveAction: " + action);
     }
 
+    private static int effectiveSpeed(BattlePokemon mon) {
+        int speed = mon.getSpeed();
+        if (mon.getStatus() == StatusCondition.PAR) {
+            speed = speed / 4;
+        }
+
+        return speed;
+    }
+
     private static List<Player> firstBySpeed(Battle battle) {
-        int s1 = battle.side(P1).active().getSpeed();
-        int s2 = battle.side(P2).active().getSpeed();
+        int s1 = effectiveSpeed(battle.side(P1).active());
+        int s2 = effectiveSpeed(battle.side(P2).active());
 
         if (s1 != s2) {
             return s1 > s2 ? ordered(P1) : ordered(P2);

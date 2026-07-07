@@ -68,6 +68,8 @@ public final class BattleDemo {
             case BattleEvent.NoEffect n   -> "Brak efektu na " + n.target().name();
             case BattleEvent.StatusTick t -> t.who().name() + " cierpi od " + t.status()
                     + " (-" + t.damage() + ", zostaje " + t.remainingHp() + " HP)";
+            case BattleEvent.Immobilized im -> im.who().name() + " nie może się ruszyć ("
+                    + im.status() + ")";
             case BattleEvent.Faint f      -> f.who().name() + " pada!";
             case BattleEvent.Switch s     -> s.out().name() + " schodzi, wchodzi " + s.in().name();
             case BattleEvent.Forfeit f    -> f.who() + " się poddaje";

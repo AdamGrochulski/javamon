@@ -97,6 +97,40 @@ class TurnResolverExecuteMoveTest {
     }
 
     @Test
+    void paralyzedFullyImmobilizedEmitsOnlyImmobilized() {
+        // rng=1 -> chance(25): 1<=25 true -> full para; return przed accuracy/damage
+        Rng paraHits = (min, max) -> 1;
+        BattlePokemon attacker = poke(Type.WATER, 50, TACKLE);
+        attacker.applyStatus(StatusCondition.PAR);
+        Battle b = battle(attacker, poke(Type.WATER, 50, TACKLE), paraHits);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(1, events.size());
+        BattleEvent.Immobilized im = assertInstanceOf(BattleEvent.Immobilized.class, events.get(0));
+        assertEquals(P1, im.who().player());
+        assertEquals(StatusCondition.PAR, im.status());
+        assertEquals(b.side(P2).active().getMaxHp(), b.side(P2).active().getCurrentHp()); // brak obrażeń
+    }
+
+    @Test
+    void paralyzedButNotImmobilizedMovesNormally() {
+        // ROLL_100 -> chance(25): 100<=25 false -> ruch idzie; damage jak zwykle (PAR nie tnie ataku)
+        BattlePokemon attacker = poke(Type.WATER, 50, TACKLE);
+        attacker.applyStatus(StatusCondition.PAR);
+        Battle b = battle(attacker, poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(2, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        BattleEvent.Damage dmg = assertInstanceOf(BattleEvent.Damage.class, events.get(1));
+        assertEquals(46, dmg.damage());
+    }
+
+    @Test
     void statusMoveEmitsOnlyMoveUsed() {
         Battle b = battle(poke(Type.WATER, 50, GROWL), poke(Type.WATER, 50, TACKLE), ROLL_100);
         List<BattleEvent> events = new ArrayList<>();

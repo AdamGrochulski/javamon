@@ -199,9 +199,23 @@ public final class TurnResolver {
             return;
         }
 
-        // MVP: ruch STATUS trafia, ale efektów (nałożenie statusu, zmiana statów,
-        // hazardy) jeszcze nie ma — sam MoveUsed poszedł, kończymy. Dojdzie później.
-        if (move.category() == MoveCategory.STATUS) return;
+        // Ruch STATUS: trafił (accuracy sprawdzone wyżej), więc nakłada swój status na cel.
+        // SLP potrzebuje długości (1-3 tury, RNG); reszta przez applyStatus. applied=false,
+        // gdy cel już ma status (brak nadpisania) -> wtedy bez eventu, ruch nic nie zdziałał.
+        // MVP: statusówki celują w przeciwnika; buffy na siebie (np. Swords Dance) później.
+        if (move.category() == MoveCategory.STATUS) {
+            StatusCondition inflicts = move.inflictedStatus();
+            if (inflicts != null) {
+                boolean applied = (inflicts == StatusCondition.SLP)
+                        ? defMon.applySleep(battle.getRng().nextInt(1, 3))
+                        : defMon.applyStatus(inflicts);
+                if (applied) {
+                    events.add(new BattleEvent.StatusInflicted(ref(battle, defender),
+                            inflicts));
+                }
+            }
+            return;
+        }
 
         DamageResult result = DamageCalculator.calculate(atkMon, defMon, move, battle.getChart(), battle.getRng());
 

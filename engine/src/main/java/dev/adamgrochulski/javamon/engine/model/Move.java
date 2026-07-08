@@ -6,7 +6,8 @@ package dev.adamgrochulski.javamon.engine.model;
  */
 public record Move(
         String name, Type type, MoveCategory category,
-        int power, int accuracy, int pp, int priority) {
+        int power, int accuracy, int pp, int priority,
+        StatusCondition inflictedStatus) {
 
     // Walidacja przy tworzeniu — nielegalny ruch nie powstanie.
     public Move {
@@ -28,6 +29,16 @@ public record Move(
         if (priority < -7 || priority > 5) {
             throw new IllegalArgumentException("priority musi być w -7..5, było: " + priority);
         }
+        if (inflictedStatus == StatusCondition.NONE) {
+            throw new IllegalArgumentException("inflictedStatus NONE nie ma sensu - użyj null");
+        }
+    }
+
+    // Wygodny konstruktor: ruch bez efektu statusowego (inflictedStatus = null).
+    // Deleguje do kanonicznego, więc istniejące wywołania 7-argumentowe działają bez zmian.
+    public Move(String name, Type type, MoveCategory category,
+                int power, int accuracy, int pp, int priority) {
+        this(name, type, category, power, accuracy, pp, priority, null);
     }
 
 }

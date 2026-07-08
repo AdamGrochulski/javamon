@@ -20,6 +20,8 @@ public sealed interface BattleEvent {
 
     record StatusTick(PokemonRef who, StatusCondition status, int damage, int remainingHp) implements BattleEvent {}
 
+    record StatusInflicted(PokemonRef target, StatusCondition status) implements BattleEvent {}
+
     record Immobilized(PokemonRef who, StatusCondition status) implements  BattleEvent {}
 
     record Forfeit(Player who) implements BattleEvent {}

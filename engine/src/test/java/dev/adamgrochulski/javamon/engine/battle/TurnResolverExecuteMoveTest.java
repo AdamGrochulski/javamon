@@ -197,6 +197,55 @@ class TurnResolverExecuteMoveTest {
     }
 
     @Test
+    void statusMoveInflictsStatusOnTarget() {
+        // Will-O-Wisp: STATUS, nakłada BRN, accuracy 100
+        Move willOWisp = new Move("Will-O-Wisp", Type.FIRE, MoveCategory.STATUS, 0, 100, 15, 0, StatusCondition.BRN);
+        Battle b = battle(poke(Type.WATER, 50, willOWisp), poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(2, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        BattleEvent.StatusInflicted si = assertInstanceOf(BattleEvent.StatusInflicted.class, events.get(1));
+        assertEquals(P2, si.target().player());
+        assertEquals(StatusCondition.BRN, si.status());
+        assertEquals(StatusCondition.BRN, b.side(P2).active().getStatus());
+    }
+
+    @Test
+    void statusMoveFailsWhenTargetAlreadyHasStatus() {
+        // cel już zatruty -> Toxic nie nadpisze; tylko MoveUsed, brak StatusInflicted
+        Move toxic = new Move("Toxic", Type.POISON, MoveCategory.STATUS, 0, 100, 10, 0, StatusCondition.TOX);
+        BattlePokemon target = poke(Type.WATER, 50, TACKLE);
+        target.applyStatus(StatusCondition.PSN);
+        Battle b = battle(poke(Type.WATER, 50, toxic), target, ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(1, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        assertEquals(StatusCondition.PSN, target.getStatus()); // status nietknięty
+    }
+
+    @Test
+    void sleepInflictingMoveRollsDurationAndAppliesSleep() {
+        // Spore: STATUS, nakłada SLP. rng: chance-y (max=100) -> hit; duration nextInt(1,3) (max=3) -> 2
+        Move spore = new Move("Spore", Type.GRASS, MoveCategory.STATUS, 0, 100, 15, 0, StatusCondition.SLP);
+        Rng hitAndSleep2 = (min, max) -> max == 3 ? 2 : 100;
+        Battle b = battle(poke(Type.WATER, 50, spore), poke(Type.WATER, 50, TACKLE), hitAndSleep2);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(2, events.size());
+        BattleEvent.StatusInflicted si = assertInstanceOf(BattleEvent.StatusInflicted.class, events.get(1));
+        assertEquals(StatusCondition.SLP, si.status());
+        assertEquals(StatusCondition.SLP, b.side(P2).active().getStatus());
+    }
+
+    @Test
     void statusMoveEmitsOnlyMoveUsed() {
         Battle b = battle(poke(Type.WATER, 50, GROWL), poke(Type.WATER, 50, TACKLE), ROLL_100);
         List<BattleEvent> events = new ArrayList<>();

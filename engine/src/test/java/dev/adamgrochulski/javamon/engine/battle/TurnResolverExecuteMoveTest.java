@@ -161,6 +161,42 @@ class TurnResolverExecuteMoveTest {
     }
 
     @Test
+    void frozenBlockedWhenThawRollFails() {
+        // ROLL_100 -> chance(20): 100<=20 false -> brak rozmrożenia -> blok
+        BattlePokemon attacker = poke(Type.WATER, 50, TACKLE);
+        attacker.applyStatus(StatusCondition.FRZ);
+        Battle b = battle(attacker, poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(1, events.size());
+        BattleEvent.Immobilized im = assertInstanceOf(BattleEvent.Immobilized.class, events.get(0));
+        assertEquals(StatusCondition.FRZ, im.status());
+        assertEquals(StatusCondition.FRZ, attacker.getStatus()); // nadal zamrożony
+        assertEquals(b.side(P2).active().getMaxHp(), b.side(P2).active().getCurrentHp());
+    }
+
+    @Test
+    void frozenThawsAndMovesSameTurn() {
+        // rng: chance-e (min=1) dostają 15 -> thaw(20) true, accuracy(100) true, crit(6) false;
+        // random (min=85) dostaje 100 -> 1.0. Efekt: rozmraża i bije za 46.
+        Rng thawAndHit = (min, max) -> min == 85 ? 100 : 15;
+        BattlePokemon attacker = poke(Type.WATER, 50, TACKLE);
+        attacker.applyStatus(StatusCondition.FRZ);
+        Battle b = battle(attacker, poke(Type.WATER, 50, TACKLE), thawAndHit);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(StatusCondition.NONE, attacker.getStatus()); // rozmrożony
+        assertEquals(2, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        BattleEvent.Damage dmg = assertInstanceOf(BattleEvent.Damage.class, events.get(1));
+        assertEquals(46, dmg.damage());
+    }
+
+    @Test
     void statusMoveEmitsOnlyMoveUsed() {
         Battle b = battle(poke(Type.WATER, 50, GROWL), poke(Type.WATER, 50, TACKLE), ROLL_100);
         List<BattleEvent> events = new ArrayList<>();

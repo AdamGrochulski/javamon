@@ -178,6 +178,18 @@ public final class TurnResolver {
             return;
         }
 
+        // Zamrożenie: 20% szans na rozmrożenie/turę; rozmrożony rusza się w tej turze,
+        // inaczej blok (rzut RNG tylko gdy FRZ).
+        if (atkMon.getStatus() == StatusCondition.FRZ) {
+            if (battle.getRng().chance(20)) {
+                atkMon.thaw();
+            } else {
+                events.add(new BattleEvent.Immobilized(ref(battle, attacker),
+                        StatusCondition.FRZ));
+                return;
+            }
+        }
+
         Move move = atkMon.useMove(action.moveIndex());
 
         events.add(new BattleEvent.MoveUsed(ref(battle, attacker), move.name()));

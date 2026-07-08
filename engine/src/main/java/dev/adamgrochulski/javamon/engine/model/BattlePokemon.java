@@ -183,6 +183,13 @@ public class BattlePokemon {
         return true;
     }
 
+    /** Rozmraża (FRZ -> NONE). No-op, jeśli nie zamrożony. Rzut szansy robi wołający (RNG). */
+    public void thaw() {
+        if (status == StatusCondition.FRZ) {
+            status = StatusCondition.NONE;
+        }
+    }
+
     public int applyEndOfTurnDamage() {
         // Status zadający ma min 1 obrażenia (przy niskim maxHp dzielenie dałoby 0).
         int damage = switch (status) {

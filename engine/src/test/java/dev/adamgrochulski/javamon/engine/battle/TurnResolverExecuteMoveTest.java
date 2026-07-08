@@ -131,6 +131,36 @@ class TurnResolverExecuteMoveTest {
     }
 
     @Test
+    void sleepBlocksForDurationThenWakesAndMoves() {
+        BattlePokemon attacker = poke(Type.WATER, 50, TACKLE);
+        attacker.applySleep(2); // dwie tury snu
+        Battle b = battle(attacker, poke(Type.WATER, 50, TACKLE), ROLL_100);
+
+        // tura 1: spał -> Immobilized SLP, nadal śpi
+        List<BattleEvent> t1 = new ArrayList<>();
+        TurnResolver.executeMove(b, P1, new MoveAction(0), t1);
+        assertEquals(1, t1.size());
+        BattleEvent.Immobilized im1 = assertInstanceOf(BattleEvent.Immobilized.class, t1.get(0));
+        assertEquals(StatusCondition.SLP, im1.status());
+        assertEquals(StatusCondition.SLP, attacker.getStatus());
+
+        // tura 2: ostatnia tura snu -> Immobilized SLP, budzi się (NONE)
+        List<BattleEvent> t2 = new ArrayList<>();
+        TurnResolver.executeMove(b, P1, new MoveAction(0), t2);
+        assertEquals(1, t2.size());
+        assertInstanceOf(BattleEvent.Immobilized.class, t2.get(0));
+        assertEquals(StatusCondition.NONE, attacker.getStatus());
+
+        // tura 3: obudzony -> normalny ruch
+        List<BattleEvent> t3 = new ArrayList<>();
+        TurnResolver.executeMove(b, P1, new MoveAction(0), t3);
+        assertEquals(2, t3.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, t3.get(0));
+        BattleEvent.Damage dmg = assertInstanceOf(BattleEvent.Damage.class, t3.get(1));
+        assertEquals(46, dmg.damage());
+    }
+
+    @Test
     void statusMoveEmitsOnlyMoveUsed() {
         Battle b = battle(poke(Type.WATER, 50, GROWL), poke(Type.WATER, 50, TACKLE), ROLL_100);
         List<BattleEvent> events = new ArrayList<>();

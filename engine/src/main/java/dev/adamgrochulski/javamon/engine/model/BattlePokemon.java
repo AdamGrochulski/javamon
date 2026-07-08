@@ -23,7 +23,7 @@ public class BattlePokemon {
     // Jedyny stan zmienny na tym etapie — spada od obrażeń.
     private int currentHp;
 
-    public BattlePokemon(String name, Stats base, Type primary, Type secondary, int level, List<Move> moves){
+    public BattlePokemon(String name, Stats base, Type primary, Type secondary, int level, List<Move> moves) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("name nie może być puste");
         }
@@ -52,19 +52,19 @@ public class BattlePokemon {
 
         currentHp = derived.maxHp();
 
-        if(moves == null) {
+        if (moves == null) {
             throw new IllegalArgumentException("moveset jest wymagany");
         }
 
-        if(moves.isEmpty()) {
+        if (moves.isEmpty()) {
             throw new IllegalArgumentException("moveset musi mieć co najmniej 1 ruch");
         }
 
-        if(moves.size() > 4) {
+        if (moves.size() > 4) {
             throw new IllegalArgumentException("moveset: max 4 ruchy, było: " + moves.size());
         }
 
-        if(moves.stream()
+        if (moves.stream()
                 .anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("moveset nie może zawierać null");
         }
@@ -75,49 +75,115 @@ public class BattlePokemon {
         this.moves = List.copyOf(slots);
     }
 
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
-    public Type getPrimary() { return primary; }
+    public Type getPrimary() {
+        return primary;
+    }
 
-    public Type getSecondary() { return secondary; }
+    public Type getSecondary() {
+        return secondary;
+    }
 
-    public int getLevel() { return level; }
+    public int getLevel() {
+        return level;
+    }
 
-    public int getMaxHp() { return derived.maxHp(); }
+    public int getMaxHp() {
+        return derived.maxHp();
+    }
 
-    public int getCurrentHp() { return currentHp; }
+    public int getCurrentHp() {
+        return currentHp;
+    }
 
-    public int getAttack() { return derived.attack(); }
+    public int getAttack() {
+        return derived.attack();
+    }
 
-    public int getDefense() { return derived.defense(); }
+    public int getDefense() {
+        return derived.defense();
+    }
 
-    public int getSpecialAttack() { return derived.specialAttack(); }
+    public int getSpecialAttack() {
+        return derived.specialAttack();
+    }
 
-    public int getSpecialDefense() { return derived.specialDefense(); }
+    public int getSpecialDefense() {
+        return derived.specialDefense();
+    }
 
-    public int getSpeed() { return derived.speed(); }
+    public int getSpeed() {
+        return derived.speed();
+    }
 
-    public StatusCondition getStatus() { return status; }
+    public StatusCondition getStatus() {
+        return status;
+    }
 
-    public int getStatusCounter() { return statusCounter; }
+    public int getStatusCounter() {
+        return statusCounter;
+    }
 
-    public boolean isFainted() { return currentHp <= 0; }
+    public boolean isFainted() {
+        return currentHp <= 0;
+    }
 
     // Obcięcie do 0 — HP nie schodzi poniżej zera.
-    public void takeDamage(int dmg) { currentHp = Math.max(0, currentHp - dmg); }
+    public void takeDamage(int dmg) {
+        currentHp = Math.max(0, currentHp - dmg);
+    }
 
     public boolean applyStatus(StatusCondition condition) {
-        if(status != StatusCondition.NONE) {
+        if (status != StatusCondition.NONE) {
             return false;
         }
         this.status = condition;
 
-        if (status == StatusCondition.TOX) { statusCounter = 1; }
+        if (status == StatusCondition.TOX) {
+            statusCounter = 1;
+        }
 
         return true;
     }
 
-    public int applyEndOfTurnDamage(){
+    /**
+     * Usypia na podaną liczbę tur. Długość snu rolluje wołający (RNG) —
+     * model tylko trzyma licznik, żeby zachować determinizm silnika.
+     * Nie nadpisuje istniejącego statusu (jak applyStatus).
+     */
+    public boolean applySleep(int turns) {
+        if (turns < 1) {
+            throw new IllegalArgumentException("tura snu musi być >= 1, było: " + turns);
+        }
+        if (status != StatusCondition.NONE) {
+            return false;
+        }
+        status = StatusCondition.SLP;
+        statusCounter = turns;
+        return true;
+    }
+
+    /**
+     * Konsumuje jedną turę snu. Zwraca true, jeśli mon spał (ruch zablokowany) —
+     * włącznie z turą budzącą, więc traci dokładnie tyle tur, ile dostał w applySleep.
+     * Gdy licznik zejdzie do 0, budzi się (status wraca do NONE).
+     */
+    public boolean sleepTurn() {
+        if (status != StatusCondition.SLP) {
+            return false;
+        }
+        statusCounter--;
+        if (statusCounter <= 0) {
+            status = StatusCondition.NONE;
+            statusCounter = 0;
+        }
+        return true;
+    }
+
+    public int applyEndOfTurnDamage() {
         // Status zadający ma min 1 obrażenia (przy niskim maxHp dzielenie dałoby 0).
         int damage = switch (status) {
             case PSN -> Math.max(1, getMaxHp() / 8);
@@ -135,7 +201,7 @@ public class BattlePokemon {
     }
 
     public Move moveAt(int index) {
-        if(index < 0 || index >= moves.size()) {
+        if (index < 0 || index >= moves.size()) {
             throw new IllegalArgumentException("moveIndex poza zakresem: " + index);
         }
         return moves.get(index).getMove();

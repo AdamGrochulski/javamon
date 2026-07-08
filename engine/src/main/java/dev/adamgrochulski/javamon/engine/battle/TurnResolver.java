@@ -162,6 +162,16 @@ public final class TurnResolver {
         BattlePokemon atkMon = battle.side(attacker).active();
         BattlePokemon defMon = battle.side(defender).active();
 
+        // Blokady ruchu od statusu — sprawdzane PRZED useMove, bo nie zużywają PP.
+
+        // Sen: twardy blok bez rzutu, konsumuje turę i budzi po odliczeniu.
+        if (atkMon.sleepTurn()) {
+            events.add(new BattleEvent.Immobilized(ref(battle, attacker),
+                    StatusCondition.SLP));
+            return;
+        }
+
+        // Paraliż: 25% szans na full-para (rzut RNG tylko gdy status PAR).
         if (atkMon.getStatus() == StatusCondition.PAR && battle.getRng().chance(25)) {
             events.add(new BattleEvent.Immobilized(ref(battle, attacker),
                     StatusCondition.PAR));

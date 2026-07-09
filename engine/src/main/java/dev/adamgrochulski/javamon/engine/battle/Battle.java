@@ -1,6 +1,7 @@
 package dev.adamgrochulski.javamon.engine.battle;
 
 import dev.adamgrochulski.javamon.engine.damage.TypeChart;
+import dev.adamgrochulski.javamon.engine.model.Terrain;
 import dev.adamgrochulski.javamon.engine.model.Weather;
 import dev.adamgrochulski.javamon.engine.rng.Rng;
 
@@ -16,6 +17,9 @@ public class Battle {
 
     private Weather weather = Weather.NONE;
     private int weatherTurns;   // tury pozostałe; 0 przy NONE
+
+    private Terrain terrain = Terrain.NONE;
+    private int terrainTurns;   // tury pozostałe; 0 przy NONE
 
     public Battle(BattleSide side1, BattleSide side2, Rng rng, TypeChart chart) {
         if(side1 == null) throw new IllegalArgumentException("side1 jest wymagany");
@@ -59,6 +63,28 @@ public class Battle {
         if (weatherTurns <= 0) {
             weather = Weather.NONE;
             weatherTurns = 0;
+            return true;
+        }
+        return false;
+    }
+
+    public Terrain getTerrain() { return terrain; }
+
+    /** Ustawia teren na {@code turns} tur (NONE = brak; wtedy licznik 0). */
+    public void setTerrain(Terrain terrain, int turns) {
+        this.terrain = terrain;
+        this.terrainTurns = terrain == Terrain.NONE ? 0 : Math.max(1, turns);
+    }
+
+    /** Odlicza turę terenu. Zwraca true, jeśli teren właśnie wygasł. */
+    public boolean tickTerrain() {
+        if (terrain == Terrain.NONE) {
+            return false;
+        }
+        terrainTurns--;
+        if (terrainTurns <= 0) {
+            terrain = Terrain.NONE;
+            terrainTurns = 0;
             return true;
         }
         return false;

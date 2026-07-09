@@ -14,7 +14,7 @@ public sealed interface MoveEffect
                 MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
                 MoveEffect.SetWeather, MoveEffect.SetScreen, MoveEffect.Confuse,
                 MoveEffect.Trap, MoveEffect.Protect, MoveEffect.LeechSeed,
-                MoveEffect.OneHitKO {
+                MoveEffect.OneHitKO, MoveEffect.SetTerrain {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -205,6 +205,18 @@ public sealed interface MoveEffect
      * Stawia ekran po stronie używającego (Reflect, Light Screen, Aurora Veil):
      * połowi obrażenia pasującej kategorii przez kilka tur. Zawsze SELF, 100%.
      */
+    record SetTerrain(Terrain terrain) implements MoveEffect {
+        public SetTerrain {
+            if (terrain == null || terrain == Terrain.NONE) {
+                throw new IllegalArgumentException("SetTerrain wymaga realnego terenu, było: " + terrain);
+            }
+        }
+
+        @Override public Target target() { return Target.SELF; }
+
+        @Override public int chance() { return 100; }
+    }
+
     record SetScreen(SideCondition condition) implements MoveEffect {
         public SetScreen {
             if (condition != SideCondition.REFLECT && condition != SideCondition.LIGHT_SCREEN

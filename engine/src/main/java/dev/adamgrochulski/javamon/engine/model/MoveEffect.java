@@ -12,7 +12,7 @@ public sealed interface MoveEffect
         permits MoveEffect.InflictStatus, MoveEffect.StatChange,
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
                 MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
-                MoveEffect.SetWeather {
+                MoveEffect.SetWeather, MoveEffect.SetScreen {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -136,6 +136,23 @@ public sealed interface MoveEffect
         public SetWeather {
             if (weather == null || weather == Weather.NONE) {
                 throw new IllegalArgumentException("SetWeather wymaga realnej pogody, było: " + weather);
+            }
+        }
+
+        @Override public Target target() { return Target.SELF; }
+
+        @Override public int chance() { return 100; }
+    }
+
+    /**
+     * Stawia ekran po stronie używającego (Reflect, Light Screen, Aurora Veil):
+     * połowi obrażenia pasującej kategorii przez kilka tur. Zawsze SELF, 100%.
+     */
+    record SetScreen(SideCondition condition) implements MoveEffect {
+        public SetScreen {
+            if (condition != SideCondition.REFLECT && condition != SideCondition.LIGHT_SCREEN
+                    && condition != SideCondition.AURORA_VEIL) {
+                throw new IllegalArgumentException("SetScreen wymaga ekranu, było: " + condition);
             }
         }
 

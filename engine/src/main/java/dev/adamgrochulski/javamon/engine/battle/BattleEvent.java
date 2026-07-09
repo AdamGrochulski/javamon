@@ -45,6 +45,10 @@ public sealed interface BattleEvent {
 
     record WeatherEnded(Weather weather) implements BattleEvent {}
 
+    record ScreenSet(Player side, SideCondition condition) implements BattleEvent {}
+
+    record ScreenFaded(Player side, SideCondition condition) implements BattleEvent {}
+
     record Forfeit(Player who) implements BattleEvent {}
 
     record BattleEnd(Player winner) implements BattleEvent {}

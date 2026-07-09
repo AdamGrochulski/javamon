@@ -2,6 +2,13 @@
 
 Rzeczy, których nie widać z kodu. Najnowsze na górze.
 
+## 2026-07-08 — Statusy: mody statów i blokada ruchu (domknięcie MVP)
+
+- **Modyfikatory statów w punkcie konsumpcji, nie na `BattlePokemon`.** BRN tnie atak fizyczny (w `DamageCalculator`), PAR ćwiartuje speed (w `TurnResolver.firstBySpeed`). Model trzyma surowe staty; modyfikator liczy ten, kto stat czyta. Spójnie i bez ukrytego stanu.
+- **Blokada ruchu przed `useMove` — PP nietknięte.** Sen/paraliż/zamrożenie nie zużywają PP. SLP: licznik tur (`applySleep`/`sleepTurn`), traci dokładnie tyle tur ile dostał. PAR: 25% full-para. FRZ: 20% thaw/turę, rozmrożony rusza się w tej samej turze. RNG wołany tylko gdy dany status obecny → sekwencja losowości nietknięta dla zdrowych monów (stare testy zielone).
+- **Długość snu rolluje wołający (resolver), nie model.** `applySleep(int)` bierze gotową liczbę tur; RNG żyje w resolverze — determinizm zachowany, model bez zależności od RNG.
+- **Ruchy statusowe: `Move.inflictedStatus` (nullable).** Delegujący 7-arg konstruktor → istniejące wywołania bez zmian. STATUS po trafieniu nakłada status na cel (SLP z losową długością, reszta `applyStatus`); brak nadpisania istniejącego statusu. Nowe eventy `Immobilized`, `StatusInflicted`.
+
 ## 2026-07-04 — Silnik walki (Faza 1)
 
 - **Eventy jako kręgosłup.** `TurnResolver.resolve` zwraca `List<BattleEvent>`; front i replay renderują wyłącznie z eventów, nie liczą nic sami. Eventy samowystarczalne (np. `Damage` niesie `remainingHp`).

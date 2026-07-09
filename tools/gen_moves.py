@@ -113,8 +113,11 @@ def convert(mid, m):
                 else:
                     flag()
             consumed.add("boosts")
+        if sec.get("volatileStatus") == "flinch":
+            effects.append({"kind": "flinch", "chance": chance})
+            consumed.add("volatileStatus")
         if any(k not in consumed for k in sec):
-            flag()  # volatileStatus (flinch), self, dustproof itd.
+            flag()  # confusion, self, dustproof itd.
     if m.get("secondaries"):
         flag()  # wiele efektów naraz
 
@@ -138,10 +141,20 @@ def convert(mid, m):
     if m.get("selfSwitch"):
         effects.append({"kind": "forceSelfSwitch"})
 
+    # --- primary volatileStatus flinch (rzadkie; większość flinchów to secondary) ---
+    prim_volatile = m.get("volatileStatus")
+    if prim_volatile == "flinch":
+        effects.append({"kind": "flinch", "chance": 100})
+        prim_volatile = None  # obsłużone, nie flaguj niżej
+
     # --- pola jeszcze nieobsługiwane ---
-    for f in ("multihit", "ohko", "weather", "terrain", "volatileStatus",
-              "forceSwitch", "damage", "pseudoWeather", "slotCondition"):
-        if m.get(f) is not None:
+    unsupported = {"multihit": m.get("multihit"), "ohko": m.get("ohko"),
+                   "weather": m.get("weather"), "terrain": m.get("terrain"),
+                   "volatileStatus": prim_volatile, "forceSwitch": m.get("forceSwitch"),
+                   "damage": m.get("damage"), "pseudoWeather": m.get("pseudoWeather"),
+                   "slotCondition": m.get("slotCondition")}
+    for f, val in unsupported.items():
+        if val is not None:
             flag()
 
     # Ruchy dwuturowe (charge: Solar Beam, Fly) i z odpoczynkiem (recharge: Hyper Beam).

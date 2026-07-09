@@ -11,7 +11,7 @@ package dev.adamgrochulski.javamon.engine.model;
 public sealed interface MoveEffect
         permits MoveEffect.InflictStatus, MoveEffect.StatChange,
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
-                MoveEffect.Hazard {
+                MoveEffect.Hazard, MoveEffect.ForceSelfSwitch {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -96,6 +96,18 @@ public sealed interface MoveEffect
         }
 
         @Override public Target target() { return Target.OPPONENT; }
+
+        @Override public int chance() { return 100; }
+    }
+
+    /**
+     * Po ruchu używający wycofuje się (U-turn / Volt Switch).
+     * MVP: auto-podmiana na następnego żywego z ławki — silnik nie ma jeszcze
+     * kanału decyzji gracza w środku tury (dojdzie z protokołem w Fazie 2).
+     * Zawsze SELF, 100%.
+     */
+    record ForceSelfSwitch() implements MoveEffect {
+        @Override public Target target() { return Target.SELF; }
 
         @Override public int chance() { return 100; }
     }

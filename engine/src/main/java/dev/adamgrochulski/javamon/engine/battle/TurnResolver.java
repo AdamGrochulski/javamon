@@ -291,6 +291,17 @@ public final class TurnResolver {
                         events.add(new BattleEvent.HazardSet(who, hz.condition()));
                     }
                 }
+                case MoveEffect.ForceSelfSwitch fs -> {
+                    // Pivot: używający (who = SELF) wycofuje się na następnego żywego z ławki.
+                    BattleSide side = battle.side(who);
+                    int next = nextLivingBench(side);
+                    if (next >= 0) {
+                        BattleEvent.PokemonRef out = ref(battle, who);
+                        side.switchTo(next);
+                        events.add(new BattleEvent.Switch(out, ref(battle, who)));
+                        applyEntryHazards(battle, who, events);
+                    }
+                }
             }
         }
     }
@@ -324,6 +335,16 @@ public final class TurnResolver {
                 events.add(new BattleEvent.Faint(ref(battle, player)));
             }
         }
+    }
+
+    // Pierwszy żywy Pokémon na ławce (poza aktywnym); -1 gdy brak zmiennika.
+    private static int nextLivingBench(BattleSide side) {
+        for (int i = 0; i < side.getTeam().size(); i++) {
+            if (i != side.getActiveIndex() && !side.getTeam().get(i).isFainted()) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     // Efektywność typu ROCK względem typów wchodzącego (iloczyn po obu typach).

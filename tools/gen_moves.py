@@ -147,8 +147,14 @@ def convert(mid, m):
         effects.append({"kind": "flinch", "chance": 100})
         prim_volatile = None  # obsłużone, nie flaguj niżej
 
+    # --- multi-hit: stała liczba (int) lub przedział [min,max] ---
+    mh = m.get("multihit")
+    multihit = None
+    if mh is not None:
+        multihit = [mh, mh] if isinstance(mh, int) else [mh[0], mh[1]]
+
     # --- pola jeszcze nieobsługiwane ---
-    unsupported = {"multihit": m.get("multihit"), "ohko": m.get("ohko"),
+    unsupported = {"ohko": m.get("ohko"),
                    "weather": m.get("weather"), "terrain": m.get("terrain"),
                    "volatileStatus": prim_volatile, "forceSwitch": m.get("forceSwitch"),
                    "damage": m.get("damage"), "pseudoWeather": m.get("pseudoWeather"),
@@ -180,6 +186,8 @@ def convert(mid, m):
     }
     if effects:
         entry["effects"] = effects
+    if multihit:
+        entry["multihit"] = multihit
     if simplified:
         entry["simplified"] = True
     return entry

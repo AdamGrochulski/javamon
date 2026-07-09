@@ -3,10 +3,13 @@ package dev.adamgrochulski.javamon.engine.battle;
 import dev.adamgrochulski.javamon.engine.damage.DamageCalculator;
 import dev.adamgrochulski.javamon.engine.damage.DamageResult;
 import dev.adamgrochulski.javamon.engine.model.BattlePokemon;
+import dev.adamgrochulski.javamon.engine.damage.TypeChart;
 import dev.adamgrochulski.javamon.engine.model.Move;
 import dev.adamgrochulski.javamon.engine.model.MoveCategory;
 import dev.adamgrochulski.javamon.engine.model.MoveEffect;
+import dev.adamgrochulski.javamon.engine.model.SideCondition;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
+import dev.adamgrochulski.javamon.engine.model.Type;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,6 +96,8 @@ public final class TurnResolver {
         battle.side(player).switchTo(action.benchIndex());
         BattleEvent.PokemonRef in = ref(battle, player);
         events.add(new BattleEvent.Switch(out, in));
+
+        applyEntryHazards(battle, player, events);
 
         return events;
     }
@@ -280,6 +285,12 @@ public final class TurnResolver {
                         events.add(new BattleEvent.Healed(ref(battle, who), healed, target.getCurrentHp()));
                     }
                 }
+                case MoveEffect.Hazard hz -> {
+                    // Hazard idzie na STRONĘ (who), nie na konkretnego mona.
+                    if (battle.side(who).addCondition(hz.condition())) {
+                        events.add(new BattleEvent.HazardSet(who, hz.condition()));
+                    }
+                }
             }
         }
     }
@@ -289,6 +300,39 @@ public final class TurnResolver {
         battle.side(player).switchTo(action.benchIndex());
         BattleEvent.PokemonRef in = ref(battle, player);
         events.add(new BattleEvent.Switch(out, in));
+
+        applyEntryHazards(battle, player, events);
+    }
+
+    /**
+     * Obrażenia wejściowe od hazardów po stronie gracza (Stealth Rock).
+     * Wołane po każdej zmianie aktywnego (zwykły switch i replacement po faincie).
+     */
+    static void applyEntryHazards(Battle battle, Player player, List<BattleEvent> events) {
+        BattleSide side = battle.side(player);
+        BattlePokemon mon = side.active();
+        if (mon.isFainted()) {
+            return;
+        }
+        if (side.hasCondition(SideCondition.STEALTH_ROCK)) {
+            double eff = rockEffectiveness(battle.getChart(), mon);
+            int dmg = Math.max(1, (int) (mon.getMaxHp() * eff / 8.0));
+            mon.takeDamage(dmg);
+            events.add(new BattleEvent.HazardHurt(ref(battle, player), SideCondition.STEALTH_ROCK,
+                    dmg, mon.getCurrentHp()));
+            if (mon.isFainted()) {
+                events.add(new BattleEvent.Faint(ref(battle, player)));
+            }
+        }
+    }
+
+    // Efektywność typu ROCK względem typów wchodzącego (iloczyn po obu typach).
+    private static double rockEffectiveness(TypeChart chart, BattlePokemon mon) {
+        double eff = chart.multiplier(Type.ROCK, mon.getPrimary());
+        if (mon.getSecondary() != null) {
+            eff *= chart.multiplier(Type.ROCK, mon.getSecondary());
+        }
+        return eff;
     }
 
     static void endOfTurnTicks(Battle battle, List<BattleEvent> events) {

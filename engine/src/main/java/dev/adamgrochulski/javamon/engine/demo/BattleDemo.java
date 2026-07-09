@@ -75,6 +75,9 @@ public final class BattleDemo {
                     + " (zostaje " + h.remainingHp() + " HP)";
             case BattleEvent.RecoilDamage r -> r.who().name() + " obrywa odrzutem " + r.damage()
                     + " (zostaje " + r.remainingHp() + " HP)";
+            case BattleEvent.HazardSet hs -> "Hazard " + hs.condition() + " po stronie " + hs.side();
+            case BattleEvent.HazardHurt hh -> hh.who().name() + " rani się o " + hh.condition()
+                    + " (-" + hh.damage() + ", zostaje " + hh.remainingHp() + " HP)";
             case BattleEvent.Immobilized im -> im.who().name() + " nie może się ruszyć ("
                     + im.status() + ")";
             case BattleEvent.Faint f      -> f.who().name() + " pada!";

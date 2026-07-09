@@ -10,7 +10,8 @@ package dev.adamgrochulski.javamon.engine.model;
  */
 public sealed interface MoveEffect
         permits MoveEffect.InflictStatus, MoveEffect.StatChange,
-                MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain {
+                MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
+                MoveEffect.Hazard {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -82,6 +83,19 @@ public sealed interface MoveEffect
         }
 
         @Override public Target target() { return Target.SELF; }
+
+        @Override public int chance() { return 100; }
+    }
+
+    /** Stawia hazard po stronie przeciwnika (Stealth Rock). Zawsze OPPONENT, 100%. */
+    record Hazard(SideCondition condition) implements MoveEffect {
+        public Hazard {
+            if (condition == null) {
+                throw new IllegalArgumentException("Hazard wymaga SideCondition");
+            }
+        }
+
+        @Override public Target target() { return Target.OPPONENT; }
 
         @Override public int chance() { return 100; }
     }

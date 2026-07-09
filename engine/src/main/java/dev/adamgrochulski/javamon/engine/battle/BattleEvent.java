@@ -25,6 +25,10 @@ public sealed interface BattleEvent {
 
     record StatStageChanged(PokemonRef who, Stat stat, int delta, int newStage) implements BattleEvent {}
 
+    record Healed(PokemonRef who, int amount, int remainingHp) implements BattleEvent {}
+
+    record RecoilDamage(PokemonRef who, int damage, int remainingHp) implements BattleEvent {}
+
     record Immobilized(PokemonRef who, StatusCondition status) implements  BattleEvent {}
 
     record Forfeit(Player who) implements BattleEvent {}

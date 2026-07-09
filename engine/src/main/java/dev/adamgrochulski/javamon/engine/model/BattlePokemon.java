@@ -139,6 +139,16 @@ public class BattlePokemon {
         currentHp = Math.max(0, currentHp - dmg);
     }
 
+    /** Leczy o amount, nie przekraczając maxHp; nie ożywia trupa. Zwraca faktycznie uleczoną ilość. */
+    public int heal(int amount) {
+        if (amount <= 0 || isFainted()) {
+            return 0;
+        }
+        int before = currentHp;
+        currentHp = Math.min(getMaxHp(), currentHp + amount);
+        return currentHp - before;
+    }
+
     public boolean applyStatus(StatusCondition condition) {
         if (status != StatusCondition.NONE) {
             return false;

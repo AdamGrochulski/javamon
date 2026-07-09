@@ -71,6 +71,10 @@ public final class BattleDemo {
             case BattleEvent.StatusInflicted si -> si.target().name() + " dostaje status " + si.status();
             case BattleEvent.StatStageChanged sc -> sc.who().name() + " " + sc.stat()
                     + (sc.delta() > 0 ? " +" : " ") + sc.delta() + " (stage " + sc.newStage() + ")";
+            case BattleEvent.Healed h -> h.who().name() + " leczy się o " + h.amount()
+                    + " (zostaje " + h.remainingHp() + " HP)";
+            case BattleEvent.RecoilDamage r -> r.who().name() + " obrywa odrzutem " + r.damage()
+                    + " (zostaje " + r.remainingHp() + " HP)";
             case BattleEvent.Immobilized im -> im.who().name() + " nie może się ruszyć ("
                     + im.status() + ")";
             case BattleEvent.Faint f      -> f.who().name() + " pada!";

@@ -202,8 +202,9 @@ public final class TurnResolver {
         }
 
         // Ruch STATUS: trafił (accuracy wyżej), więc odpala swoje efekty i kończy.
+        // Nie zadaje obrażeń -> damageDealt = 0 (Recoil/Drain nie mają z czego liczyć).
         if (move.category() == MoveCategory.STATUS) {
-            applyEffects(battle, attacker, defender, move, events);
+            applyEffects(battle, attacker, defender, move, 0, events);
             return;
         }
 
@@ -220,16 +221,17 @@ public final class TurnResolver {
 
         if (defMon.isFainted()) events.add(new BattleEvent.Faint(ref(battle, defender)));
 
-        // Secondary effects — PO obrażeniach (np. Flamethrower 10% burn).
-        applyEffects(battle, attacker, defender, move, events);
+        // Secondary effects — PO obrażeniach (np. 10% burn, recoil, drain).
+        applyEffects(battle, attacker, defender, move, result.damage(), events);
     }
 
     /**
      * Odpala efekty uboczne ruchu. Dla każdego: rzut szansy (100% bez rzutu RNG,
      * żeby nie ruszać sekwencji ruchów w pełni deterministycznych), potem rozwiązanie
-     * celu (SELF/OPPONENT) i wykonanie wariantu efektu.
+     * celu (SELF/OPPONENT) i wykonanie wariantu efektu. {@code damageDealt} = obrażenia
+     * zadane przez ruch (0 dla STATUS) — potrzebne przez Recoil/Drain.
      */
-    static void applyEffects(Battle battle, Player attacker, Player defender, Move move, List<BattleEvent> events) {
+    static void applyEffects(Battle battle, Player attacker, Player defender, Move move, int damageDealt, List<BattleEvent> events) {
         for (MoveEffect effect : move.effects()) {
             boolean triggers = effect.chance() >= 100 || battle.getRng().chance(effect.chance());
             if (!triggers) continue;
@@ -253,6 +255,29 @@ public final class TurnResolver {
                     if (applied != 0) {   // 0 = stat już przy limicie -> bez eventu
                         events.add(new BattleEvent.StatStageChanged(ref(battle, who),
                                 sc.stat(), applied, target.getStage(sc.stat())));
+                    }
+                }
+                case MoveEffect.Heal h -> {
+                    if (target.isFainted()) break;
+                    int healed = target.heal(Math.max(1, target.getMaxHp() * h.percent() / 100));
+                    if (healed > 0) {
+                        events.add(new BattleEvent.Healed(ref(battle, who), healed, target.getCurrentHp()));
+                    }
+                }
+                case MoveEffect.Recoil r -> {
+                    if (damageDealt <= 0) break;   // brak obrażeń -> brak odrzutu
+                    int amount = Math.max(1, damageDealt * r.percent() / 100);
+                    target.takeDamage(amount);
+                    events.add(new BattleEvent.RecoilDamage(ref(battle, who), amount, target.getCurrentHp()));
+                    if (target.isFainted()) {
+                        events.add(new BattleEvent.Faint(ref(battle, who)));
+                    }
+                }
+                case MoveEffect.Drain d -> {
+                    if (damageDealt <= 0) break;
+                    int healed = target.heal(Math.max(1, damageDealt * d.percent() / 100));
+                    if (healed > 0) {
+                        events.add(new BattleEvent.Healed(ref(battle, who), healed, target.getCurrentHp()));
                     }
                 }
             }

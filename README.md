@@ -6,7 +6,9 @@ Projekt nauki: silnik i logikę piszę sam, warstwa po warstwie. Pełna koncepcj
 
 ## Stan
 
-Silnik walk (Faza 1 + 1.5) — kompletny, 111 testów jednostkowych. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), stat stages (±6), ruchy z PP/priority i systemem efektów (`MoveEffect`), wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random), statusy (tick BRN/PSN/TOX, mody statów BRN/PAR, blokada ruchu SLP/PAR/FRZ), efekty ruchów (status z szansą, zmiana statów, heal/recoil/drain, entry hazardy Stealth Rock, pivot U-turn/Volt Switch), `MoveDex` z `moves.json`, turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik), wymuszony switch po faincie i eventy walki pod render/replay.
+Silnik walk (Faza 1 + 1.5) — kompletny, 157 testów jednostkowych. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), stat stages (±6), ruchy z PP/priority i systemem efektów (`MoveEffect`), wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random / pogoda / teren / ekrany), statusy (tick BRN/PSN/TOX, mody statów BRN/PAR, blokada ruchu SLP/PAR/FRZ), efekty ruchów (status z szansą, zmiana statów, heal/recoil/drain, flinch, confusion, multi-hit, ruchy dwuturowe charge/recharge, OHKO, partial trap, protect, leech seed), efekty pola (pogoda rain/sun/sand/snow, teren electric/grassy/misty/psychic, entry hazardy Stealth Rock/Spikes/Toxic Spikes/Sticky Web, ekrany Reflect/Light Screen/Aurora Veil), pivot U-turn/Volt Switch, `MoveDex` z pełną bazą ~850 ruchów (Pokémon Showdown), turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik), wymuszony switch po faincie i eventy walki pod render/replay.
+
+Baza ruchów: 850 wpisów, 708 w pełni obsługiwanych, 142 z flagą `simplified` (ładują się z podstawą, ich unikatowa mechanika — Substitute, Encore, Disable, fixed-damage itd. — dojdzie później albo zostaje jako pojedynczy przypadek).
 
 Dalej: Faza 2 — Spring Boot, WebSocket, PostgreSQL/Redis owijające silnik.
 

@@ -2,6 +2,15 @@
 
 Rzeczy, których nie widać z kodu. Najnowsze na górze.
 
+## 2026-07-09 — Domknięcie silnika: pełna baza ruchów + mechaniki
+
+- **Pełna baza ~850 ruchów z Pokémon Showdown.** Generator `tools/gen_moves.py` konwertuje ich `moves.json` na nasz schemat. Ruchy z jeszcze niemodelowaną mechaniką dostają flagę `simplified` (ładują się z podstawą — typ/moc/PP — ale bez pełnego działania). Uczciwie nad-flagujemy: cokolwiek nierozpoznanego → simplified. Po każdej nowej mechanice regenerujemy dex i flaga schodzi z pasujących ruchów. Docelowo 708/850 w pełni obsługiwanych, 142 simplified (bespoke singletony: Substitute, Encore, Disable, Counter, fixed-damage...).
+- **Mechaniki dodane (każda: `MoveEffect`/pole na `Move` + obsługa w resolverze + testy):** flinch (volatile turowy), multi-hit (`Move.MultiHit`, pętla obrażeń, rozkład gen5+ dla [2,5]), pogoda (`Weather` na `Battle`, mod Water/Fire, chip SANDSTORM), warstwowe hazardy (Spikes/Toxic Spikes/Sticky Web — `BattleSide` z licznikiem warstw), ekrany (`SideCondition` czasowe, ×0.5 obrażeń), confusion (volatile 1-4 tur, self-hit typeless), ruchy dwuturowe (`Move.TwoTurn` CHARGE/RECHARGE — resolver ignoruje akcję gdy mon zablokowany), partial trap (chip 1/8 przez 4-5 tur), protect (blok + malejący łańcuch), leech seed (drain+heal), OHKO (natychmiastowy nokaut, poraża wyższy poziom), teren (`Terrain` na `Battle`, ×1.3 pasujący typ naziemnym, GRASSY heal).
+- **Pole walki (pogoda/teren) na `Battle`, nie na `BattleSide`.** Globalne dla obu stron, z licznikiem tur; efekt liczony w punkcie konsumpcji (`DamageCalculator`) i na końcu tury. `DamageCalculator.calculate` przeciążony (weather → screened → terrain), stare 5-arg wywołania i testy nietknięte.
+- **Naziemność przybliżana typem (nie-Flying).** Bez itemów/abilities (Levitate, Air Balloon) — wystarcza dla hazardów kontaktowych, terenu i Toxic Spikes. Dojdzie z Fazą 2/itemami.
+- **Kolejność residuali końca tury:** status → uwięzienie → leech seed → pogoda → teren → ekrany. Każdy sprawdza `isOver` przez wspólny guard po fazie.
+- **Volatile'e turowe vs trwałe.** `clearTurnVolatiles` (koniec tury) kasuje tylko flinch i protect; confusion/trap/leech seed/charge/recharge trwają między turami i znikają po własnym warunku.
+
 ## 2026-07-09 — Faza 1.5: system efektów ruchów
 
 - **`MoveEffect` jako sealed lista na ruchu.** Zamiast pojedynczego `inflictedStatus` ruch trzyma `List<MoveEffect>` (InflictStatus, StatChange, Heal, Recoil, Drain, Hazard, ForceSelfSwitch). Resolver stosuje je generycznie przez exhaustive switch — nowy typ efektu nie przejdzie niezauważony. Delegujące konstruktory `Move` zachowały stare wywołania.

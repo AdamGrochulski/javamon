@@ -74,10 +74,18 @@ class MoveDexTest {
     @Test
     void flagsUnsupportedMovesAsSimplified() {
         assertTrue(dex.simplifiedCount() > 0);
-        assertTrue(dex.isSimplified("Solar Beam"));    // charge (dwuturowy)
+        assertTrue(dex.isSimplified("Protect"));        // volatile Protect — jeszcze niemodelowany
         assertFalse(dex.isSimplified("Flamethrower"));  // w pełni obsługiwany
         assertFalse(dex.isSimplified("Earthquake"));
         assertFalse(dex.isSimplified("Bullet Seed"));   // multi-hit — już obsługiwany
+        assertFalse(dex.isSimplified("Solar Beam"));    // charge — już obsługiwany
+    }
+
+    @Test
+    void parsesTwoTurn() {
+        assertEquals(Move.TwoTurn.CHARGE, dex.get("Solar Beam").twoTurn());
+        assertEquals(Move.TwoTurn.RECHARGE, dex.get("Hyper Beam").twoTurn());
+        assertEquals(Move.TwoTurn.NONE, dex.get("Tackle").twoTurn());
     }
 
     @Test

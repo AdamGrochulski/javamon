@@ -175,60 +175,85 @@ public final class TurnResolver {
         BattlePokemon atkMon = battle.side(attacker).active();
         BattlePokemon defMon = battle.side(defender).active();
 
-        // Blokady ruchu od statusu — sprawdzane PRZED useMove, bo nie zużywają PP.
-
-        // Sen: twardy blok bez rzutu, konsumuje turę i budzi po odliczeniu.
-        if (atkMon.sleepTurn()) {
-            events.add(new BattleEvent.Immobilized(ref(battle, attacker),
-                    StatusCondition.SLP));
+        // Recharge (Hyper Beam): odpoczynek po ruchu RECHARGE — pomija całą turę,
+        // ignorując podaną akcję. Sprawdzane najpierw, bo mon jest wyczerpany.
+        if (atkMon.mustRecharge()) {
+            atkMon.clearRecharge();
+            events.add(new BattleEvent.Recharging(ref(battle, attacker)));
             return;
         }
 
-        // Paraliż: 25% szans na full-para (rzut RNG tylko gdy status PAR).
-        if (atkMon.getStatus() == StatusCondition.PAR && battle.getRng().chance(25)) {
-            events.add(new BattleEvent.Immobilized(ref(battle, attacker),
-                    StatusCondition.PAR));
-            return;
-        }
+        Move move;
+        boolean releasing = atkMon.isCharging();
 
-        // Zamrożenie: 20% szans na rozmrożenie/turę; rozmrożony rusza się w tej turze,
-        // inaczej blok (rzut RNG tylko gdy FRZ).
-        if (atkMon.getStatus() == StatusCondition.FRZ) {
-            if (battle.getRng().chance(20)) {
-                atkMon.thaw();
-            } else {
+        if (releasing) {
+            // Tura 2 ruchu dwuturowego: wypuszczamy naładowany ruch (PP zapłacone
+            // turę 1), ignorując podaną akcję. Blokady statusu pomijamy.
+            move = atkMon.releaseCharge();
+            events.add(new BattleEvent.MoveUsed(ref(battle, attacker), move.name()));
+        } else {
+            // Blokady ruchu od statusu — sprawdzane PRZED useMove, bo nie zużywają PP.
+
+            // Sen: twardy blok bez rzutu, konsumuje turę i budzi po odliczeniu.
+            if (atkMon.sleepTurn()) {
                 events.add(new BattleEvent.Immobilized(ref(battle, attacker),
-                        StatusCondition.FRZ));
+                        StatusCondition.SLP));
                 return;
             }
-        }
 
-        // Flinch (wzdrygnięcie): volatile ustawiony przez szybszego atakującego w tej
-        // turze. Blokuje ruch, nie zużywa PP. Kasowany na końcu tury.
-        if (atkMon.isFlinched()) {
-            events.add(new BattleEvent.Flinched(ref(battle, attacker)));
-            return;
-        }
+            // Paraliż: 25% szans na full-para (rzut RNG tylko gdy status PAR).
+            if (atkMon.getStatus() == StatusCondition.PAR && battle.getRng().chance(25)) {
+                events.add(new BattleEvent.Immobilized(ref(battle, attacker),
+                        StatusCondition.PAR));
+                return;
+            }
 
-        // Zmieszanie: odliczamy turę; jeśli nadal zmieszany, 33% na uderzenie siebie
-        // (blok ruchu, bez PP). Oprzytomnienie w tej turze pozwala się ruszyć.
-        if (atkMon.isConfused()) {
-            if (!atkMon.tickConfusion()) {
-                events.add(new BattleEvent.ConfusionEnded(ref(battle, attacker)));
-            } else if (battle.getRng().chance(33)) {
-                int dmg = confusionSelfDamage(atkMon, battle.getRng());
-                atkMon.takeDamage(dmg);
-                events.add(new BattleEvent.ConfusionHit(ref(battle, attacker), dmg, atkMon.getCurrentHp()));
-                if (atkMon.isFainted()) {
-                    events.add(new BattleEvent.Faint(ref(battle, attacker)));
+            // Zamrożenie: 20% szans na rozmrożenie/turę; rozmrożony rusza się w tej turze,
+            // inaczej blok (rzut RNG tylko gdy FRZ).
+            if (atkMon.getStatus() == StatusCondition.FRZ) {
+                if (battle.getRng().chance(20)) {
+                    atkMon.thaw();
+                } else {
+                    events.add(new BattleEvent.Immobilized(ref(battle, attacker),
+                            StatusCondition.FRZ));
+                    return;
                 }
+            }
+
+            // Flinch (wzdrygnięcie): volatile ustawiony przez szybszego atakującego w tej
+            // turze. Blokuje ruch, nie zużywa PP. Kasowany na końcu tury.
+            if (atkMon.isFlinched()) {
+                events.add(new BattleEvent.Flinched(ref(battle, attacker)));
                 return;
             }
+
+            // Zmieszanie: odliczamy turę; jeśli nadal zmieszany, 33% na uderzenie siebie
+            // (blok ruchu, bez PP). Oprzytomnienie w tej turze pozwala się ruszyć.
+            if (atkMon.isConfused()) {
+                if (!atkMon.tickConfusion()) {
+                    events.add(new BattleEvent.ConfusionEnded(ref(battle, attacker)));
+                } else if (battle.getRng().chance(33)) {
+                    int dmg = confusionSelfDamage(atkMon, battle.getRng());
+                    atkMon.takeDamage(dmg);
+                    events.add(new BattleEvent.ConfusionHit(ref(battle, attacker), dmg, atkMon.getCurrentHp()));
+                    if (atkMon.isFainted()) {
+                        events.add(new BattleEvent.Faint(ref(battle, attacker)));
+                    }
+                    return;
+                }
+            }
+
+            move = atkMon.useMove(action.moveIndex());
+
+            // Ruch dwuturowy CHARGE: tura 1 tylko ładuje, atak wychodzi w następnej.
+            if (move.twoTurn() == Move.TwoTurn.CHARGE) {
+                atkMon.startCharge(move);
+                events.add(new BattleEvent.Charging(ref(battle, attacker), move.name()));
+                return;
+            }
+
+            events.add(new BattleEvent.MoveUsed(ref(battle, attacker), move.name()));
         }
-
-        Move move = atkMon.useMove(action.moveIndex());
-
-        events.add(new BattleEvent.MoveUsed(ref(battle, attacker), move.name()));
 
         if (!battle.getRng().chance(move.accuracy())) {
             events.add(new BattleEvent.MoveMissed(ref(battle, attacker), move.name()));
@@ -279,6 +304,11 @@ public final class TurnResolver {
 
         // Secondary effects — PO obrażeniach, raz, na sumie zadanych obrażeń (recoil/drain).
         applyEffects(battle, attacker, defender, move, total, events);
+
+        // Ruch RECHARGE (Hyper Beam): po udanym trafieniu wymusza odpoczynek za turę.
+        if (move.twoTurn() == Move.TwoTurn.RECHARGE) {
+            atkMon.setMustRecharge();
+        }
     }
 
     // Obrażenia od uderzenia siebie w zmieszaniu: typeless, fizyczne, moc 40,

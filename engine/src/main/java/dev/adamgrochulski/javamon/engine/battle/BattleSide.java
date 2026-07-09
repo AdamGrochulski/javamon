@@ -1,12 +1,19 @@
 package dev.adamgrochulski.javamon.engine.battle;
 
 import dev.adamgrochulski.javamon.engine.model.BattlePokemon;
+import dev.adamgrochulski.javamon.engine.model.SideCondition;
+
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class BattleSide {
     private final List<BattlePokemon> team;
     private int activeIndex;
+
+    // Hazardy i inne efekty utrzymujące się po tej stronie (nie na konkretnym monie).
+    private final Set<SideCondition> conditions = EnumSet.noneOf(SideCondition.class);
 
     public BattleSide(List<BattlePokemon> team) {
         if(team == null || team.isEmpty()) {
@@ -29,6 +36,10 @@ public class BattleSide {
 
     public List<BattlePokemon> getTeam() { return team; }
     public int getActiveIndex() { return activeIndex; }
+
+    /** Dodaje efekt strony; zwraca false, jeśli już był (bez podwajania). */
+    public boolean addCondition(SideCondition condition) { return conditions.add(condition); }
+    public boolean hasCondition(SideCondition condition) { return conditions.contains(condition); }
 
     public BattlePokemon active() { return team.get(activeIndex); }
     public boolean isDefeated() {

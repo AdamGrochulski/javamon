@@ -1,5 +1,6 @@
 package dev.adamgrochulski.javamon.engine.battle;
 
+import dev.adamgrochulski.javamon.engine.model.SideCondition;
 import dev.adamgrochulski.javamon.engine.model.Stat;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
 
@@ -28,6 +29,10 @@ public sealed interface BattleEvent {
     record Healed(PokemonRef who, int amount, int remainingHp) implements BattleEvent {}
 
     record RecoilDamage(PokemonRef who, int damage, int remainingHp) implements BattleEvent {}
+
+    record HazardSet(Player side, SideCondition condition) implements BattleEvent {}
+
+    record HazardHurt(PokemonRef who, SideCondition condition, int damage, int remainingHp) implements BattleEvent {}
 
     record Immobilized(PokemonRef who, StatusCondition status) implements  BattleEvent {}
 

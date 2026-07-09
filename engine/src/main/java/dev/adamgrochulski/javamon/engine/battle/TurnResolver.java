@@ -5,6 +5,7 @@ import dev.adamgrochulski.javamon.engine.damage.DamageResult;
 import dev.adamgrochulski.javamon.engine.model.BattlePokemon;
 import dev.adamgrochulski.javamon.engine.model.Move;
 import dev.adamgrochulski.javamon.engine.model.MoveCategory;
+import dev.adamgrochulski.javamon.engine.model.MoveEffect;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
 
 import java.util.ArrayList;
@@ -199,21 +200,9 @@ public final class TurnResolver {
             return;
         }
 
-        // Ruch STATUS: trafił (accuracy sprawdzone wyżej), więc nakłada swój status na cel.
-        // SLP potrzebuje długości (1-3 tury, RNG); reszta przez applyStatus. applied=false,
-        // gdy cel już ma status (brak nadpisania) -> wtedy bez eventu, ruch nic nie zdziałał.
-        // MVP: statusówki celują w przeciwnika; buffy na siebie (np. Swords Dance) później.
+        // Ruch STATUS: trafił (accuracy wyżej), więc odpala swoje efekty i kończy.
         if (move.category() == MoveCategory.STATUS) {
-            StatusCondition inflicts = move.inflictedStatus();
-            if (inflicts != null) {
-                boolean applied = (inflicts == StatusCondition.SLP)
-                        ? defMon.applySleep(battle.getRng().nextInt(1, 3))
-                        : defMon.applyStatus(inflicts);
-                if (applied) {
-                    events.add(new BattleEvent.StatusInflicted(ref(battle, defender),
-                            inflicts));
-                }
-            }
+            applyEffects(battle, attacker, defender, move, events);
             return;
         }
 
@@ -229,6 +218,36 @@ public final class TurnResolver {
                 defMon.getCurrentHp(), result.crit(), result.effectiveness()));
 
         if (defMon.isFainted()) events.add(new BattleEvent.Faint(ref(battle, defender)));
+
+        // Secondary effects — PO obrażeniach (np. Flamethrower 10% burn).
+        applyEffects(battle, attacker, defender, move, events);
+    }
+
+    /**
+     * Odpala efekty uboczne ruchu. Dla każdego: rzut szansy (100% bez rzutu RNG,
+     * żeby nie ruszać sekwencji ruchów w pełni deterministycznych), potem rozwiązanie
+     * celu (SELF/OPPONENT) i wykonanie wariantu efektu.
+     */
+    static void applyEffects(Battle battle, Player attacker, Player defender, Move move, List<BattleEvent> events) {
+        for (MoveEffect effect : move.effects()) {
+            boolean triggers = effect.chance() >= 100 || battle.getRng().chance(effect.chance());
+            if (!triggers) continue;
+
+            Player who = (effect.target() == MoveEffect.Target.SELF) ? attacker : defender;
+            BattlePokemon target = battle.side(who).active();
+
+            switch (effect) {
+                case MoveEffect.InflictStatus is -> {
+                    if (target.isFainted()) break;   // nie nakładamy na trupa
+                    boolean applied = (is.status() == StatusCondition.SLP)
+                            ? target.applySleep(battle.getRng().nextInt(1, 3))
+                            : target.applyStatus(is.status());
+                    if (applied) {
+                        events.add(new BattleEvent.StatusInflicted(ref(battle, who), is.status()));
+                    }
+                }
+            }
+        }
     }
 
     static void executeSwitch(Battle battle, Player player, SwitchAction action, List<BattleEvent> events) {

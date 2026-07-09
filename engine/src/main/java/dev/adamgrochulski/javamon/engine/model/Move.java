@@ -1,13 +1,16 @@
 package dev.adamgrochulski.javamon.engine.model;
 
+import java.util.List;
+
 /**
  * Niezmienny szablon ruchu z dexu. Pozostałe PP w trakcie walki
  * żyją osobno (przy BattlePokemon) — tu jest tylko definicja.
+ * Efekty uboczne (status, zmiana statów, hazardy...) trzyma lista {@link MoveEffect}.
  */
 public record Move(
         String name, Type type, MoveCategory category,
         int power, int accuracy, int pp, int priority,
-        StatusCondition inflictedStatus) {
+        List<MoveEffect> effects) {
 
     // Walidacja przy tworzeniu — nielegalny ruch nie powstanie.
     public Move {
@@ -29,16 +32,27 @@ public record Move(
         if (priority < -7 || priority > 5) {
             throw new IllegalArgumentException("priority musi być w -7..5, było: " + priority);
         }
-        if (inflictedStatus == StatusCondition.NONE) {
-            throw new IllegalArgumentException("inflictedStatus NONE nie ma sensu - użyj null");
+        if (effects == null) {
+            throw new IllegalArgumentException("effects nie może być null (użyj pustej listy)");
         }
+        effects = List.copyOf(effects);   // niezmienna kopia obronna
     }
 
-    // Wygodny konstruktor: ruch bez efektu statusowego (inflictedStatus = null).
+    // Wygodny konstruktor: ruch bez efektów ubocznych.
     // Deleguje do kanonicznego, więc istniejące wywołania 7-argumentowe działają bez zmian.
     public Move(String name, Type type, MoveCategory category,
                 int power, int accuracy, int pp, int priority) {
-        this(name, type, category, power, accuracy, pp, priority, null);
+        this(name, type, category, power, accuracy, pp, priority, List.of());
+    }
+
+    // Wygodny konstruktor: pojedynczy status nakładany na przeciwnika w 100%
+    // (Toxic, Will-O-Wisp itd.). Zachowuje stare wywołania z argumentem StatusCondition.
+    public Move(String name, Type type, MoveCategory category,
+                int power, int accuracy, int pp, int priority, StatusCondition inflictedStatus) {
+        this(name, type, category, power, accuracy, pp, priority,
+                inflictedStatus == null
+                        ? List.of()
+                        : List.of(new MoveEffect.InflictStatus(inflictedStatus, MoveEffect.Target.OPPONENT, 100)));
     }
 
 }

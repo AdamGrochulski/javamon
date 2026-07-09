@@ -31,6 +31,8 @@ STAT_MAP = {"atk": "ATTACK", "def": "DEFENSE", "spa": "SPECIAL_ATTACK",
 WEATHER_MAP = {"raindance": "RAIN", "sunnyday": "SUN", "desolateland": "SUN",
                "primordialsea": "RAIN", "sandstorm": "SANDSTORM",
                "hail": "SNOW", "snow": "SNOW", "snowscape": "SNOW"}
+HAZARD_MAP = {"stealthrock": "STEALTH_ROCK", "spikes": "SPIKES",
+              "toxicspikes": "TOXIC_SPIKES", "stickyweb": "STICKY_WEB"}
 
 # Wykluczamy ruchy niestandardowe / gimmicki (Z, Max, CAP, fan-made, LGPE, przyszłe).
 SKIP_NONSTANDARD = {"CAP", "Future", "Custom", "Gigantamax", "LGPE"}
@@ -132,13 +134,14 @@ def convert(mid, m):
     if m.get("heal"):
         effects.append({"kind": "heal", "percent": pct(m["heal"]), "target": "SELF", "chance": 100})
 
-    # --- hazard: tylko Stealth Rock na razie ---
+    # --- hazardy wejściowe ---
     sc = m.get("sideCondition")
     if sc:
-        if sc == "stealthrock":
-            effects.append({"kind": "hazard", "condition": "STEALTH_ROCK"})
+        cond = HAZARD_MAP.get(sc)
+        if cond:
+            effects.append({"kind": "hazard", "condition": cond})
         else:
-            flag()  # spikes, reflect, lightscreen... później
+            flag()  # reflect, lightscreen, tailwind... później
 
     # --- pivot ---
     if m.get("selfSwitch"):

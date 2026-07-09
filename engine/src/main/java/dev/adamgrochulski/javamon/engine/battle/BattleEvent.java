@@ -1,5 +1,6 @@
 package dev.adamgrochulski.javamon.engine.battle;
 
+import dev.adamgrochulski.javamon.engine.model.Stat;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
 
 public sealed interface BattleEvent {
@@ -21,6 +22,8 @@ public sealed interface BattleEvent {
     record StatusTick(PokemonRef who, StatusCondition status, int damage, int remainingHp) implements BattleEvent {}
 
     record StatusInflicted(PokemonRef target, StatusCondition status) implements BattleEvent {}
+
+    record StatStageChanged(PokemonRef who, Stat stat, int delta, int newStage) implements BattleEvent {}
 
     record Immobilized(PokemonRef who, StatusCondition status) implements  BattleEvent {}
 

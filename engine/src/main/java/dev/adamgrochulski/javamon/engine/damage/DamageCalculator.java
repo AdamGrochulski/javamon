@@ -23,11 +23,12 @@ public final class DamageCalculator {
             return new DamageResult(0, false, 1.0);
         }
 
-        int atk = attacker.getAttack();
-        int def = defender.getDefense();
+        // Staty efektywne = po nałożeniu stopni boostów/debuffów (stage).
+        int atk = attacker.getEffectiveAttack();
+        int def = defender.getEffectiveDefense();
         if (move.category() == MoveCategory.SPECIAL) {
-            atk = attacker.getSpecialAttack();
-            def = defender.getSpecialDefense();
+            atk = attacker.getEffectiveSpecialAttack();
+            def = defender.getEffectiveSpecialDefense();
         }
 
         if (attacker.getStatus() == StatusCondition.BRN && move.category() == MoveCategory.PHYSICAL) {

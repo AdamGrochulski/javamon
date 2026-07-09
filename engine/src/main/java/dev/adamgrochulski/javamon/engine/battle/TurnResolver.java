@@ -109,7 +109,8 @@ public final class TurnResolver {
     }
 
     private static int effectiveSpeed(BattlePokemon mon) {
-        int speed = mon.getSpeed();
+        // Warstwy: stopień statu (getEffectiveSpeed) -> potem status (PAR ćwiartuje).
+        int speed = mon.getEffectiveSpeed();
         if (mon.getStatus() == StatusCondition.PAR) {
             speed = speed / 4;
         }
@@ -244,6 +245,14 @@ public final class TurnResolver {
                             : target.applyStatus(is.status());
                     if (applied) {
                         events.add(new BattleEvent.StatusInflicted(ref(battle, who), is.status()));
+                    }
+                }
+                case MoveEffect.StatChange sc -> {
+                    if (target.isFainted()) break;   // trup nie boostuje statów
+                    int applied = target.changeStage(sc.stat(), sc.stages());
+                    if (applied != 0) {   // 0 = stat już przy limicie -> bez eventu
+                        events.add(new BattleEvent.StatStageChanged(ref(battle, who),
+                                sc.stat(), applied, target.getStage(sc.stat())));
                     }
                 }
             }

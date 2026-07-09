@@ -84,6 +84,8 @@ public final class BattleDemo {
             case BattleEvent.ConfusionStarted cs -> cs.who().name() + " jest zmieszany!";
             case BattleEvent.ConfusionHit ch -> ch.who().name() + " w zmieszaniu rani siebie o " + ch.damage();
             case BattleEvent.ConfusionEnded ce -> ce.who().name() + " oprzytomniał";
+            case BattleEvent.Charging cg  -> cg.who().name() + " ładuje " + cg.moveName() + "...";
+            case BattleEvent.Recharging rc -> rc.who().name() + " musi odpocząć";
             case BattleEvent.WeatherStarted ws -> "Pogoda: " + ws.weather();
             case BattleEvent.WeatherHurt wh -> wh.who().name() + " obrywa od pogody " + wh.damage()
                     + " (zostaje " + wh.remainingHp() + " HP)";

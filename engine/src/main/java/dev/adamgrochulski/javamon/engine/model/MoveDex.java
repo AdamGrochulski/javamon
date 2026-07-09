@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +20,11 @@ import java.util.Set;
  */
 public class MoveDex {
 
-    // Pośredni DTO ruchu z JSON-a.
+    // Pośredni DTO ruchu z JSON-a. simplified = ma efekt, którego silnik jeszcze
+    // nie modeluje (ruch ładuje się z podstawą, ale nie odtwarza pełnego działania).
     private record MoveEntry(String name, Type type, MoveCategory category,
                              int power, int accuracy, int pp, int priority,
-                             List<EffectEntry> effects) {}
+                             List<EffectEntry> effects, boolean simplified) {}
 
     // Pośredni DTO efektu — pola opcjonalne (null gdy nieużywane przy danym kind).
     private record EffectEntry(String kind, StatusCondition status, Stat stat, Integer stages,
@@ -30,16 +32,22 @@ public class MoveDex {
                                MoveEffect.Target target, Integer chance) {}
 
     private final Map<String, Move> byName;
+    private final Set<String> simplified;
 
     public MoveDex() {
         Map<String, Move> map = new LinkedHashMap<>();
+        Set<String> simp = new HashSet<>();
         for (MoveEntry entry : load()) {
             Move move = toMove(entry);
             if (map.putIfAbsent(move.name(), move) != null) {
                 throw new IllegalStateException("Zduplikowany ruch w moves.json: " + move.name());
             }
+            if (entry.simplified()) {
+                simp.add(move.name());
+            }
         }
         this.byName = Map.copyOf(map);
+        this.simplified = Set.copyOf(simp);
     }
 
     /** Ruch po nazwie. Rzuca, gdy nieznany — serwer i tak waliduje moveset gracza wcześniej. */
@@ -56,6 +64,11 @@ public class MoveDex {
     public Set<String> names() { return byName.keySet(); }
 
     public int size() { return byName.size(); }
+
+    /** true = ruch ma efekt jeszcze nieodtwarzany przez silnik (załadowany z podstawą). */
+    public boolean isSimplified(String name) { return simplified.contains(name); }
+
+    public int simplifiedCount() { return simplified.size(); }
 
     private static Move toMove(MoveEntry e) {
         List<MoveEffect> effects = e.effects() == null

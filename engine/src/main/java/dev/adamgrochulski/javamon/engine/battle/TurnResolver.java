@@ -8,6 +8,7 @@ import dev.adamgrochulski.javamon.engine.model.Move;
 import dev.adamgrochulski.javamon.engine.model.MoveCategory;
 import dev.adamgrochulski.javamon.engine.model.MoveEffect;
 import dev.adamgrochulski.javamon.engine.model.SideCondition;
+import dev.adamgrochulski.javamon.engine.model.Stat;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
 import dev.adamgrochulski.javamon.engine.model.Type;
 import dev.adamgrochulski.javamon.engine.model.Weather;
@@ -376,8 +377,10 @@ public final class TurnResolver {
     }
 
     /**
-     * Obrażenia wejściowe od hazardów po stronie gracza (Stealth Rock).
-     * Wołane po każdej zmianie aktywnego (zwykły switch i replacement po faincie).
+     * Efekty wejściowe od hazardów po stronie gracza. Wołane po każdej zmianie
+     * aktywnego (zwykły switch i replacement po faincie). Kolejność: Stealth Rock,
+     * Spikes, Toxic Spikes, Sticky Web. Naziemność przybliżamy typem (Flying = lata,
+     * niekryty przez hazardy kontaktowe) — brak jeszcze itemów/abilities.
      */
     static void applyEntryHazards(Battle battle, Player player, List<BattleEvent> events) {
         BattleSide side = battle.side(player);
@@ -385,16 +388,69 @@ public final class TurnResolver {
         if (mon.isFainted()) {
             return;
         }
+
+        // Stealth Rock — trafia każdego (typowe, nie kontaktowe).
         if (side.hasCondition(SideCondition.STEALTH_ROCK)) {
             double eff = rockEffectiveness(battle.getChart(), mon);
             int dmg = Math.max(1, (int) (mon.getMaxHp() * eff / 8.0));
-            mon.takeDamage(dmg);
-            events.add(new BattleEvent.HazardHurt(ref(battle, player), SideCondition.STEALTH_ROCK,
-                    dmg, mon.getCurrentHp()));
-            if (mon.isFainted()) {
-                events.add(new BattleEvent.Faint(ref(battle, player)));
+            if (hazardHurt(battle, player, mon, SideCondition.STEALTH_ROCK, dmg, events)) {
+                return;   // padł -> stop
             }
         }
+
+        boolean grounded = !isType(mon, Type.FLYING);
+        if (!grounded) {
+            return;   // reszta hazardów działa tylko na naziemnych
+        }
+
+        // Spikes — obrażenia rosną z warstwami: 1 -> 1/8, 2 -> 1/6, 3 -> 1/4 maxHp.
+        int spikes = side.getLayers(SideCondition.SPIKES);
+        if (spikes > 0) {
+            int denom = switch (spikes) {
+                case 1 -> 8;
+                case 2 -> 6;
+                default -> 4;
+            };
+            int dmg = Math.max(1, mon.getMaxHp() / denom);
+            if (hazardHurt(battle, player, mon, SideCondition.SPIKES, dmg, events)) {
+                return;
+            }
+        }
+
+        // Toxic Spikes — Poison naziemny pochłania; Steel odporny; reszta dostaje
+        // PSN (1 warstwa) lub TOX (2 warstwy).
+        int toxicSpikes = side.getLayers(SideCondition.TOXIC_SPIKES);
+        if (toxicSpikes > 0) {
+            if (isType(mon, Type.POISON)) {
+                side.removeCondition(SideCondition.TOXIC_SPIKES);
+            } else if (!isType(mon, Type.STEEL)) {
+                StatusCondition status = toxicSpikes >= 2 ? StatusCondition.TOX : StatusCondition.PSN;
+                if (mon.applyStatus(status)) {
+                    events.add(new BattleEvent.StatusInflicted(ref(battle, player), status));
+                }
+            }
+        }
+
+        // Sticky Web — obniża Speed o 1 stopień.
+        if (side.hasCondition(SideCondition.STICKY_WEB)) {
+            int applied = mon.changeStage(Stat.SPEED, -1);
+            if (applied != 0) {
+                events.add(new BattleEvent.StatStageChanged(ref(battle, player), Stat.SPEED,
+                        applied, mon.getStage(Stat.SPEED)));
+            }
+        }
+    }
+
+    // Zadaje obrażenia od hazardu, emituje HazardHurt (+ Faint). Zwraca true, gdy mon padł.
+    private static boolean hazardHurt(Battle battle, Player player, BattlePokemon mon,
+                                      SideCondition condition, int dmg, List<BattleEvent> events) {
+        mon.takeDamage(dmg);
+        events.add(new BattleEvent.HazardHurt(ref(battle, player), condition, dmg, mon.getCurrentHp()));
+        if (mon.isFainted()) {
+            events.add(new BattleEvent.Faint(ref(battle, player)));
+            return true;
+        }
+        return false;
     }
 
     // Pierwszy żywy Pokémon na ławce (poza aktywnym); -1 gdy brak zmiennika.

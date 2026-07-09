@@ -32,6 +32,11 @@ public class BattlePokemon {
     // trapTurns tur; blokuje też wycofanie (egzekwuje serwer przy walidacji switcha).
     private int trapTurns;
 
+    // Protect: protectedThisTurn = kasowany na końcu tury (blokuje ruch przeciwnika);
+    // protectStreak = łańcuch kolejnych użyć (maleje szansa powodzenia), trwa między turami.
+    private boolean protectedThisTurn;
+    private int protectStreak;
+
     // Stopnie statów bojowych (-6..+6), start 0. Indeksowane przez Stat.ordinal().
     private final int[] stages = new int[Stat.values().length];
 
@@ -224,8 +229,23 @@ public class BattlePokemon {
 
     public boolean isFlinched() { return flinched; }
 
-    /** Kasuje volatile'e żyjące tylko jedną turę (flinch). Woła resolver na końcu tury. */
-    public void clearTurnVolatiles() { this.flinched = false; }
+    /** Kasuje volatile'e żyjące tylko jedną turę (flinch, protect). Woła resolver na końcu tury. */
+    public void clearTurnVolatiles() {
+        this.flinched = false;
+        this.protectedThisTurn = false;
+    }
+
+    /** Zaczyna chronić w tej turze (blokuje wrogi ruch do końca tury). */
+    public void setProtected() { this.protectedThisTurn = true; }
+
+    public boolean isProtected() { return protectedThisTurn; }
+
+    /** Łańcuch kolejnych Protectów — im dłuższy, tym mniejsza szansa powodzenia. */
+    public int getProtectStreak() { return protectStreak; }
+
+    public void incProtectStreak() { protectStreak++; }
+
+    public void resetProtectStreak() { protectStreak = 0; }
 
     /** Nakłada zmieszanie na {@code turns} tur (RNG rolluje wołający). No-op, jeśli już zmieszany. */
     public void confuse(int turns) {

@@ -74,7 +74,7 @@ class MoveDexTest {
     @Test
     void flagsUnsupportedMovesAsSimplified() {
         assertTrue(dex.simplifiedCount() > 0);
-        assertTrue(dex.isSimplified("Protect"));        // volatile Protect — jeszcze niemodelowany
+        assertTrue(dex.isSimplified("Substitute"));     // volatile Substitute — jeszcze niemodelowany
         assertFalse(dex.isSimplified("Flamethrower"));  // w pełni obsługiwany
         assertFalse(dex.isSimplified("Earthquake"));
         assertFalse(dex.isSimplified("Bullet Seed"));   // multi-hit — już obsługiwany

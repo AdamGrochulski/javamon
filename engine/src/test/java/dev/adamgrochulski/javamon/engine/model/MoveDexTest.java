@@ -72,10 +72,20 @@ class MoveDexTest {
     @Test
     void flagsUnsupportedMovesAsSimplified() {
         assertTrue(dex.simplifiedCount() > 0);
-        assertTrue(dex.isSimplified("Bullet Seed"));  // multi-hit — jeszcze niemodelowane
         assertTrue(dex.isSimplified("Solar Beam"));    // charge (dwuturowy)
         assertFalse(dex.isSimplified("Flamethrower"));  // w pełni obsługiwany
         assertFalse(dex.isSimplified("Earthquake"));
+        assertFalse(dex.isSimplified("Bullet Seed"));   // multi-hit — już obsługiwany
+    }
+
+    @Test
+    void parsesMultiHit() {
+        Move.MultiHit mh = dex.get("Bullet Seed").multiHit();
+        assertEquals(2, mh.min());
+        assertEquals(5, mh.max());
+        Move.MultiHit fixed = dex.get("Double Kick").multiHit();
+        assertEquals(2, fixed.min());
+        assertEquals(2, fixed.max());
     }
 
     @Test

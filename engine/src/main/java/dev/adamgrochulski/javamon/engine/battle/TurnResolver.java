@@ -222,21 +222,57 @@ public final class TurnResolver {
             return;
         }
 
-        DamageResult result = DamageCalculator.calculate(atkMon, defMon, move, battle.getChart(), battle.getRng());
+        // Multi-hit: liczba uderzeń rollowana raz, każde uderzenie liczone osobno
+        // (własny krytyk/roll). Pojedynczy ruch = dokładnie 1 uderzenie.
+        Move.MultiHit mh = move.multiHit();
+        int hits = (mh == null) ? 1 : rollHits(mh, battle.getRng());
+        int total = 0;
+        boolean immune = false;
 
-        if (result.noEffect()) {
+        for (int i = 0; i < hits; i++) {
+            if (defMon.isFainted()) break;
+            DamageResult result = DamageCalculator.calculate(atkMon, defMon, move, battle.getChart(), battle.getRng());
+
+            // Immunność typu jest stała między uderzeniami — łapiemy na 1. i kończymy.
+            if (result.noEffect()) {
+                immune = true;
+                break;
+            }
+
+            defMon.takeDamage(result.damage());
+            total += result.damage();
+            events.add(new BattleEvent.Damage(ref(battle, defender), result.damage(),
+                    defMon.getCurrentHp(), result.crit(), result.effectiveness()));
+
+            if (defMon.isFainted()) {
+                events.add(new BattleEvent.Faint(ref(battle, defender)));
+                break;
+            }
+        }
+
+        if (immune && total == 0) {
             events.add(new BattleEvent.NoEffect(ref(battle, defender)));
             return;
         }
 
-        defMon.takeDamage(result.damage());
-        events.add(new BattleEvent.Damage(ref(battle, defender), result.damage(),
-                defMon.getCurrentHp(), result.crit(), result.effectiveness()));
+        // Secondary effects — PO obrażeniach, raz, na sumie zadanych obrażeń (recoil/drain).
+        applyEffects(battle, attacker, defender, move, total, events);
+    }
 
-        if (defMon.isFainted()) events.add(new BattleEvent.Faint(ref(battle, defender)));
-
-        // Secondary effects — PO obrażeniach (np. 10% burn, recoil, drain).
-        applyEffects(battle, attacker, defender, move, result.damage(), events);
+    // Liczba uderzeń ruchu wielokrotnego. Stała gdy min==max; dla [2,5] rozkład
+    // jak w grach (gen5+): 2 i 3 po 3/8, 4 i 5 po 1/8; inne przedziały jednostajnie.
+    private static int rollHits(Move.MultiHit mh, dev.adamgrochulski.javamon.engine.rng.Rng rng) {
+        if (mh.min() == mh.max()) {
+            return mh.min();
+        }
+        if (mh.min() == 2 && mh.max() == 5) {
+            int r = rng.nextInt(1, 8);
+            if (r <= 3) return 2;
+            if (r <= 6) return 3;
+            if (r == 7) return 4;
+            return 5;
+        }
+        return rng.nextInt(mh.min(), mh.max());
     }
 
     /**

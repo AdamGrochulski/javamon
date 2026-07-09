@@ -10,7 +10,23 @@ import java.util.List;
 public record Move(
         String name, Type type, MoveCategory category,
         int power, int accuracy, int pp, int priority,
-        List<MoveEffect> effects) {
+        List<MoveEffect> effects, MultiHit multiHit) {
+
+    /**
+     * Ruch wielokrotny (Bullet Seed, Double Kick): trafia {@code min}..{@code max} razy,
+     * każde uderzenie liczone osobno (własny krytyk/roll). {@code min==max} = stała liczba.
+     * null na ruchu = pojedyncze uderzenie.
+     */
+    public record MultiHit(int min, int max) {
+        public MultiHit {
+            if (min < 2) {
+                throw new IllegalArgumentException("multi-hit min musi być >= 2, było: " + min);
+            }
+            if (max < min || max > 10) {
+                throw new IllegalArgumentException("multi-hit max musi być w [min,10], było: " + max);
+            }
+        }
+    }
 
     // Walidacja przy tworzeniu — nielegalny ruch nie powstanie.
     public Move {
@@ -42,7 +58,13 @@ public record Move(
     // Deleguje do kanonicznego, więc istniejące wywołania 7-argumentowe działają bez zmian.
     public Move(String name, Type type, MoveCategory category,
                 int power, int accuracy, int pp, int priority) {
-        this(name, type, category, power, accuracy, pp, priority, List.of());
+        this(name, type, category, power, accuracy, pp, priority, List.of(), null);
+    }
+
+    // Wygodny konstruktor: ruch z efektami, pojedyncze uderzenie.
+    public Move(String name, Type type, MoveCategory category,
+                int power, int accuracy, int pp, int priority, List<MoveEffect> effects) {
+        this(name, type, category, power, accuracy, pp, priority, effects, null);
     }
 
     // Wygodny konstruktor: pojedynczy status nakładany na przeciwnika w 100%
@@ -52,7 +74,8 @@ public record Move(
         this(name, type, category, power, accuracy, pp, priority,
                 inflictedStatus == null
                         ? List.of()
-                        : List.of(new MoveEffect.InflictStatus(inflictedStatus, MoveEffect.Target.OPPONENT, 100)));
+                        : List.of(new MoveEffect.InflictStatus(inflictedStatus, MoveEffect.Target.OPPONENT, 100)),
+                null);
     }
 
 }

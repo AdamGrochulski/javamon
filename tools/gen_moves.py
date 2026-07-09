@@ -33,6 +33,8 @@ WEATHER_MAP = {"raindance": "RAIN", "sunnyday": "SUN", "desolateland": "SUN",
                "hail": "SNOW", "snow": "SNOW", "snowscape": "SNOW"}
 HAZARD_MAP = {"stealthrock": "STEALTH_ROCK", "spikes": "SPIKES",
               "toxicspikes": "TOXIC_SPIKES", "stickyweb": "STICKY_WEB"}
+TERRAIN_MAP = {"electricterrain": "ELECTRIC", "grassyterrain": "GRASSY",
+               "mistyterrain": "MISTY", "psychicterrain": "PSYCHIC"}
 SCREEN_MAP = {"reflect": "REFLECT", "lightscreen": "LIGHT_SCREEN", "auroraveil": "AURORA_VEIL"}
 
 # Wykluczamy ruchy niestandardowe / gimmicki (Z, Max, CAP, fan-made, LGPE, przyszłe).
@@ -194,9 +196,17 @@ def convert(mid, m):
     if m.get("ohko"):
         effects.append({"kind": "oneHitKO"})
 
+    # --- teren (Electric/Grassy/Misty/Psychic Terrain) ---
+    ter = m.get("terrain")
+    if ter:
+        terrain = TERRAIN_MAP.get(ter.lower())
+        if terrain:
+            effects.append({"kind": "setTerrain", "terrain": terrain})
+        else:
+            flag()
+
     # --- pola jeszcze nieobsługiwane ---
-    unsupported = {"terrain": m.get("terrain"),
-                   "volatileStatus": prim_volatile, "forceSwitch": m.get("forceSwitch"),
+    unsupported = {"volatileStatus": prim_volatile, "forceSwitch": m.get("forceSwitch"),
                    "damage": m.get("damage"), "pseudoWeather": m.get("pseudoWeather"),
                    "slotCondition": m.get("slotCondition")}
     for f, val in unsupported.items():

@@ -97,6 +97,7 @@ public class MoveDex {
             case "trap" -> new MoveEffect.Trap(e.target(), e.chance());
             case "protect" -> new MoveEffect.Protect();
             case "leechSeed" -> new MoveEffect.LeechSeed();
+            case "oneHitKO" -> new MoveEffect.OneHitKO();
             case "setWeather" -> new MoveEffect.SetWeather(e.weather());
             case "setScreen" -> new MoveEffect.SetScreen(e.condition());
             default -> throw new IllegalStateException("Nieznany kind efektu w moves.json: " + e.kind());

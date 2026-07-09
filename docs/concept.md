@@ -161,7 +161,7 @@ Action {
 { "type": "TURN_START", "turn": 4 }
 ```
 
-Zestaw odpowiada eventom silnika (`BattleEvent`: `MoveUsed`, `MoveMissed`, `Damage`, `NoEffect`, `StatusTick`, `Switch`, `Faint`, `Forfeit`, `BattleEnd`) — warstwa WS mapuje je na JSON. Frontend odtwarza sekwencyjnie z animacją (jak Pokemon Showdown robi swój battle log).
+Zestaw odpowiada eventom silnika (`BattleEvent`: `MoveUsed`, `MoveMissed`, `Damage`, `NoEffect`, `Immobilized`, `StatusTick`, `StatusInflicted`, `Switch`, `Faint`, `Forfeit`, `BattleEnd`) — warstwa WS mapuje je na JSON. Frontend odtwarza sekwencyjnie z animacją (jak Pokemon Showdown robi swój battle log).
 
 ---
 
@@ -221,18 +221,19 @@ Tackle, Body Slam, Flamethrower, Fire Blast, Surf, Hydro Pump, Thunderbolt, Thun
 
 ### Faza 1: Core engine (tydzień 1–2) — ✅ ukończona
 
-Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`. 70 testów jednostkowych (bez Springa).
+Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`. 82 testy jednostkowe (bez Springa).
 
-- [x] Model danych: Type, Move (+priority/PP), Stats/BattleStats, BattlePokemon, Battle/BattleSide
+- [x] Model danych: Type, Move (+priority/PP/status), Stats/BattleStats, BattlePokemon, Battle/BattleSide
 - [x] Macierz efektywności typów (data-driven, `type-chart.json` + Jackson)
 - [x] Formuła obrażeń + STAB + krytyk + random (wstrzykiwany `Rng`, `DamageResult`)
-- [x] Status effects — apply + tick (BRN/PSN/TOX); *blokada ruchu i mod statów odłożone*
+- [x] Statusy — apply + tick (BRN/PSN/TOX), mody statów (BRN −atak fizyczny, PAR ¼ speed), blokada ruchu (SLP licznik, PAR 25%, FRZ 20% thaw)
+- [x] Ruchy statusowe nakładają swój status na cel (`Move.inflictedStatus` → `StatusInflicted`)
 - [x] Turn resolver: kolejność (switch>move, priority→speed→RNG), wykonanie MOVE/SWITCH/FORFEIT, ticki, wynik
 - [x] Unit testy silnika (bez Spring)
 - [x] Eventy walki (`BattleEvent`) — podstawa renderu i replay
 - [x] Wymuszony switch po faincie (`needsReplacement`/`awaitingReplacement` + `resolveReplacement`)
 
-**Do domknięcia w Fazie 1.5 / przy integracji:** walidacja akcji względem stanu po stronie serwera, efekty ruchów statusowych, entry hazardy, złożone akcje (U-turn/Volt Switch), moves.json + loader.
+**Do domknięcia w Fazie 1.5 / przy integracji:** walidacja akcji względem stanu po stronie serwera, entry hazardy, złożone akcje (U-turn/Volt Switch), buffy statów na siebie (Swords Dance), moves.json + loader.
 
 ### Faza 2: Backend API (tydzień 2–3)
 - [ ] Spring Boot setup, PostgreSQL schema, JPA entities

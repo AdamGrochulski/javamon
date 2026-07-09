@@ -28,6 +28,10 @@ public class BattlePokemon {
     private Move chargingMove;
     private boolean mustRecharge;
 
+    // Uwięzienie (partial trap: Wrap, Fire Spin): chip 1/8 maxHp co turę przez
+    // trapTurns tur; blokuje też wycofanie (egzekwuje serwer przy walidacji switcha).
+    private int trapTurns;
+
     // Stopnie statów bojowych (-6..+6), start 0. Indeksowane przez Stat.ordinal().
     private final int[] stages = new int[Stat.values().length];
 
@@ -252,6 +256,29 @@ public class BattlePokemon {
     public void setMustRecharge() { this.mustRecharge = true; }
 
     public void clearRecharge() { this.mustRecharge = false; }
+
+    /** Uwięzienie na {@code turns} tur (RNG rolluje wołający). No-op, jeśli już uwięziony. */
+    public void trap(int turns) {
+        if (turns < 1) {
+            throw new IllegalArgumentException("tury uwięzienia muszą być >= 1, było: " + turns);
+        }
+        if (trapTurns == 0) {
+            trapTurns = turns;
+        }
+    }
+
+    public boolean isTrapped() { return trapTurns > 0; }
+
+    /** Obrażenia uwięzienia na turę (1/8 maxHp, min 1). */
+    public int trapDamage() { return Math.max(1, getMaxHp() / 8); }
+
+    /** Odlicza turę uwięzienia; zwraca true, jeśli nadal uwięziony. */
+    public boolean tickTrap() {
+        if (trapTurns > 0) {
+            trapTurns--;
+        }
+        return trapTurns > 0;
+    }
 
     /**
      * Odlicza turę zmieszania (wołane przy próbie ruchu). Zwraca true, jeśli po

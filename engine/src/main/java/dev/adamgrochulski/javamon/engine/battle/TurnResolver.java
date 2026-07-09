@@ -74,8 +74,9 @@ public final class TurnResolver {
             }
         }
 
-        // 6. Ticki końca tury (status + pogoda + ekrany)
+        // 6. Ticki końca tury (status + uwięzienie + pogoda + ekrany)
         endOfTurnTicks(battle, events);
+        trapEndOfTurn(battle, events);
         weatherEndOfTurn(battle, events);
         tickScreens(battle, events);
 
@@ -415,6 +416,12 @@ public final class TurnResolver {
                         events.add(new BattleEvent.ConfusionStarted(ref(battle, who)));
                     }
                 }
+                case MoveEffect.Trap tr -> {
+                    if (!target.isFainted() && !target.isTrapped()) {
+                        target.trap(battle.getRng().nextInt(4, 5));
+                        events.add(new BattleEvent.Trapped(ref(battle, who)));
+                    }
+                }
                 case MoveEffect.Flinch f -> {
                     // Ustawia volatile; realny skutek (utrata tury) zależy od kolejności —
                     // sprawdzany w executeMove, gdy flincher próbuje się ruszyć.
@@ -598,6 +605,25 @@ public final class TurnResolver {
         for (Player p : List.of(P1, P2)) {
             for (SideCondition expired : battle.side(p).tickTimedConditions()) {
                 events.add(new BattleEvent.ScreenFaded(p, expired));
+            }
+        }
+    }
+
+    /** Koniec tury: chip od uwięzienia (Wrap/Fire Spin) po obu stronach, potem odliczenie. */
+    static void trapEndOfTurn(Battle battle, List<BattleEvent> events) {
+        for (Player p : firstBySpeed(battle)) {
+            BattlePokemon mon = battle.side(p).active();
+            if (mon.isFainted() || !mon.isTrapped()) {
+                continue;
+            }
+            int dmg = mon.trapDamage();
+            mon.takeDamage(dmg);
+            events.add(new BattleEvent.TrapHurt(ref(battle, p), dmg, mon.getCurrentHp()));
+            boolean stillTrapped = mon.tickTrap();
+            if (mon.isFainted()) {
+                events.add(new BattleEvent.Faint(ref(battle, p)));
+            } else if (!stillTrapped) {
+                events.add(new BattleEvent.TrapEnded(ref(battle, p)));
             }
         }
     }

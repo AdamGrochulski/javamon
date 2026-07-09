@@ -409,7 +409,7 @@
   {"name": "Leaf Tornado", "type": "GRASS", "category": "SPECIAL", "power": 65, "accuracy": 90, "pp": 10, "priority": 0, "simplified": true},
   {"name": "Leafage", "type": "GRASS", "category": "PHYSICAL", "power": 40, "accuracy": 100, "pp": 40, "priority": 0},
   {"name": "Leech Life", "type": "BUG", "category": "PHYSICAL", "power": 80, "accuracy": 100, "pp": 10, "priority": 0, "effects": [{"kind": "drain", "percent": 50}]},
-  {"name": "Leech Seed", "type": "GRASS", "category": "STATUS", "power": 0, "accuracy": 90, "pp": 10, "priority": 0, "simplified": true},
+  {"name": "Leech Seed", "type": "GRASS", "category": "STATUS", "power": 0, "accuracy": 90, "pp": 10, "priority": 0, "effects": [{"kind": "leechSeed"}]},
   {"name": "Leer", "type": "NORMAL", "category": "STATUS", "power": 0, "accuracy": 100, "pp": 30, "priority": 0, "effects": [{"kind": "statChange", "stat": "DEFENSE", "stages": -1, "target": "OPPONENT", "chance": 100}]},
   {"name": "Lick", "type": "GHOST", "category": "PHYSICAL", "power": 30, "accuracy": 100, "pp": 30, "priority": 0, "effects": [{"kind": "inflictStatus", "status": "PAR", "target": "OPPONENT", "chance": 30}]},
   {"name": "Life Dew", "type": "WATER", "category": "STATUS", "power": 0, "accuracy": 100, "pp": 10, "priority": 0, "effects": [{"kind": "heal", "percent": 25, "target": "SELF", "chance": 100}]},

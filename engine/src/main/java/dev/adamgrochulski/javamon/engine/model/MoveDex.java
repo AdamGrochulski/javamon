@@ -86,6 +86,7 @@ public class MoveDex {
             case "drain" -> new MoveEffect.Drain(e.percent());
             case "hazard" -> new MoveEffect.Hazard(e.condition());
             case "forceSelfSwitch" -> new MoveEffect.ForceSelfSwitch();
+            case "flinch" -> new MoveEffect.Flinch(e.chance());
             default -> throw new IllegalStateException("Nieznany kind efektu w moves.json: " + e.kind());
         };
     }

@@ -81,7 +81,9 @@ public final class TurnResolver {
             return events;
         }
 
-        // 8. Kolejna tura
+        // 8. Kasowanie volatile'ów jednorurowych (flinch) i kolejna tura
+        battle.side(P1).active().clearTurnVolatiles();
+        battle.side(P2).active().clearTurnVolatiles();
         battle.nextTurn();
         return events;
     }
@@ -197,6 +199,13 @@ public final class TurnResolver {
             }
         }
 
+        // Flinch (wzdrygnięcie): volatile ustawiony przez szybszego atakującego w tej
+        // turze. Blokuje ruch, nie zużywa PP. Kasowany na końcu tury.
+        if (atkMon.isFlinched()) {
+            events.add(new BattleEvent.Flinched(ref(battle, attacker)));
+            return;
+        }
+
         Move move = atkMon.useMove(action.moveIndex());
 
         events.add(new BattleEvent.MoveUsed(ref(battle, attacker), move.name()));
@@ -289,6 +298,13 @@ public final class TurnResolver {
                     // Hazard idzie na STRONĘ (who), nie na konkretnego mona.
                     if (battle.side(who).addCondition(hz.condition())) {
                         events.add(new BattleEvent.HazardSet(who, hz.condition()));
+                    }
+                }
+                case MoveEffect.Flinch f -> {
+                    // Ustawia volatile; realny skutek (utrata tury) zależy od kolejności —
+                    // sprawdzany w executeMove, gdy flincher próbuje się ruszyć.
+                    if (!target.isFainted()) {
+                        target.flinch();
                     }
                 }
                 case MoveEffect.ForceSelfSwitch fs -> {

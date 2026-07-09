@@ -36,6 +36,8 @@ public sealed interface BattleEvent {
 
     record Immobilized(PokemonRef who, StatusCondition status) implements  BattleEvent {}
 
+    record Flinched(PokemonRef who) implements BattleEvent {}
+
     record Forfeit(Player who) implements BattleEvent {}
 
     record BattleEnd(Player winner) implements BattleEvent {}

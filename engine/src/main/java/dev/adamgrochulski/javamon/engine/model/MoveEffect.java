@@ -13,7 +13,8 @@ public sealed interface MoveEffect
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
                 MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
                 MoveEffect.SetWeather, MoveEffect.SetScreen, MoveEffect.Confuse,
-                MoveEffect.Trap, MoveEffect.Protect, MoveEffect.LeechSeed {
+                MoveEffect.Trap, MoveEffect.Protect, MoveEffect.LeechSeed,
+                MoveEffect.OneHitKO {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -151,6 +152,16 @@ public sealed interface MoveEffect
         }
 
         @Override public Target target() { return Target.OPPONENT; }
+    }
+
+    /**
+     * Natychmiastowy nokaut (Fissure, Guillotine, Horn Drill, Sheer Cold): po trafieniu
+     * cel pada, o ile nie jest wyższego poziomu. Zawsze OPPONENT, 100%.
+     */
+    record OneHitKO() implements MoveEffect {
+        @Override public Target target() { return Target.OPPONENT; }
+
+        @Override public int chance() { return 100; }
     }
 
     /**

@@ -16,6 +16,9 @@ public class BattlePokemon {
     private StatusCondition status = StatusCondition.NONE;
     private int statusCounter;
 
+    // Stopnie statów bojowych (-6..+6), start 0. Indeksowane przez Stat.ordinal().
+    private final int[] stages = new int[Stat.values().length];
+
     // Staty przeliczone na level (liczone raz w konstruktorze).
     private final BattleStats derived;
     private final List<MoveSlot> moves;
@@ -189,6 +192,43 @@ public class BattlePokemon {
             status = StatusCondition.NONE;
         }
     }
+
+    /** Maksymalny (i minimalny, ze znakiem) stopień statu. */
+    public static final int MAX_STAGE = 6;
+
+    public int getStage(Stat stat) {
+        return stages[stat.ordinal()];
+    }
+
+    /**
+     * Zmienia stopień statu o delta, obcinając do [-6, +6].
+     * Zwraca faktycznie zastosowaną zmianę (0 = stat był już przy limicie).
+     */
+    public int changeStage(Stat stat, int delta) {
+        int old = stages[stat.ordinal()];
+        int next = Math.max(-MAX_STAGE, Math.min(MAX_STAGE, old + delta));
+        stages[stat.ordinal()] = next;
+        return next - old;
+    }
+
+    // Stat po nałożeniu stopnia. Ułamek na intach (jak w grach): +n -> *(2+n)/2,
+    // -n -> *2/(2+n). Dzielenie całkowite = floor, bez błędów floating-point.
+    private int effective(int raw, Stat stat) {
+        int stage = stages[stat.ordinal()];
+        int numerator = stage >= 0 ? 2 + stage : 2;
+        int denominator = stage >= 0 ? 2 : 2 - stage;
+        return raw * numerator / denominator;
+    }
+
+    public int getEffectiveAttack() { return effective(getAttack(), Stat.ATTACK); }
+
+    public int getEffectiveDefense() { return effective(getDefense(), Stat.DEFENSE); }
+
+    public int getEffectiveSpecialAttack() { return effective(getSpecialAttack(), Stat.SPECIAL_ATTACK); }
+
+    public int getEffectiveSpecialDefense() { return effective(getSpecialDefense(), Stat.SPECIAL_DEFENSE); }
+
+    public int getEffectiveSpeed() { return effective(getSpeed(), Stat.SPEED); }
 
     public int applyEndOfTurnDamage() {
         // Status zadający ma min 1 obrażenia (przy niskim maxHp dzielenie dałoby 0).

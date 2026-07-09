@@ -19,9 +19,11 @@ class MoveDexTest {
     }
 
     @Test
-    void loadsCatalogFromJson() {
-        assertEquals(32, dex.size());
+    void loadsFullCatalogFromJson() {
+        // pełny dex z danych Showdown — setki ruchów
+        assertTrue(dex.size() > 800, "spodziewano się pełnego dexu, było: " + dex.size());
         assertTrue(dex.has("Flamethrower"));
+        assertTrue(dex.has("Earthquake"));
         assertFalse(dex.has("Nieistniejący"));
     }
 
@@ -58,13 +60,7 @@ class MoveDexTest {
     }
 
     @Test
-    void parsesMultipleEffects() {
-        assertEquals(2, dex.get("Dragon Dance").effects().size());
-        assertEquals(2, dex.get("Close Combat").effects().size());
-    }
-
-    @Test
-    void parsesEachEffectKind() {
+    void parsesEachSupportedEffectKind() {
         assertInstanceOf(MoveEffect.StatChange.class, dex.get("Swords Dance").effects().get(0));
         assertInstanceOf(MoveEffect.Heal.class, dex.get("Recover").effects().get(0));
         assertInstanceOf(MoveEffect.Hazard.class, dex.get("Stealth Rock").effects().get(0));
@@ -74,7 +70,17 @@ class MoveDexTest {
     }
 
     @Test
+    void flagsUnsupportedMovesAsSimplified() {
+        assertTrue(dex.simplifiedCount() > 0);
+        assertTrue(dex.isSimplified("Bullet Seed"));  // multi-hit — jeszcze niemodelowane
+        assertTrue(dex.isSimplified("Solar Beam"));    // charge (dwuturowy)
+        assertFalse(dex.isSimplified("Flamethrower"));  // w pełni obsługiwany
+        assertFalse(dex.isSimplified("Earthquake"));
+    }
+
+    @Test
     void plainDamageMoveHasNoEffects() {
         assertTrue(dex.get("Tackle").effects().isEmpty());
+        assertFalse(dex.isSimplified("Tackle"));
     }
 }

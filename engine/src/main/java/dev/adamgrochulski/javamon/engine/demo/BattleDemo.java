@@ -86,6 +86,9 @@ public final class BattleDemo {
             case BattleEvent.ConfusionEnded ce -> ce.who().name() + " oprzytomniał";
             case BattleEvent.Charging cg  -> cg.who().name() + " ładuje " + cg.moveName() + "...";
             case BattleEvent.Recharging rc -> rc.who().name() + " musi odpocząć";
+            case BattleEvent.Trapped tp   -> tp.who().name() + " zostaje uwięziony!";
+            case BattleEvent.TrapHurt th  -> th.who().name() + " cierpi od uwięzienia " + th.damage();
+            case BattleEvent.TrapEnded te -> te.who().name() + " uwalnia się";
             case BattleEvent.WeatherStarted ws -> "Pogoda: " + ws.weather();
             case BattleEvent.WeatherHurt wh -> wh.who().name() + " obrywa od pogody " + wh.damage()
                     + " (zostaje " + wh.remainingHp() + " HP)";

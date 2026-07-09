@@ -161,6 +161,10 @@ def convert(mid, m):
         # Confuse Ray, Swagger, Flatter — miesza cel (na 100%).
         effects.append({"kind": "confuse", "target": "OPPONENT", "chance": 100})
         prim_volatile = None
+    elif prim_volatile == "partiallytrapped":
+        # Wrap, Bind, Fire Spin, Whirlpool — uwięzienie celu (na 100%).
+        effects.append({"kind": "trap", "target": "OPPONENT", "chance": 100})
+        prim_volatile = None
 
     # --- multi-hit: stała liczba (int) lub przedział [min,max] ---
     mh = m.get("multihit")

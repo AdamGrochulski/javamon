@@ -11,7 +11,8 @@ package dev.adamgrochulski.javamon.engine.model;
 public sealed interface MoveEffect
         permits MoveEffect.InflictStatus, MoveEffect.StatChange,
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
-                MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch {
+                MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
+                MoveEffect.SetWeather {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -125,5 +126,21 @@ public sealed interface MoveEffect
         }
 
         @Override public Target target() { return Target.OPPONENT; }
+    }
+
+    /**
+     * Ustawia pogodę na polu (Rain Dance, Sunny Day, Sandstorm). Efekt globalny —
+     * {@code target} nieistotny (SELF umownie), zawsze 100%.
+     */
+    record SetWeather(Weather weather) implements MoveEffect {
+        public SetWeather {
+            if (weather == null || weather == Weather.NONE) {
+                throw new IllegalArgumentException("SetWeather wymaga realnej pogody, było: " + weather);
+            }
+        }
+
+        @Override public Target target() { return Target.SELF; }
+
+        @Override public int chance() { return 100; }
     }
 }

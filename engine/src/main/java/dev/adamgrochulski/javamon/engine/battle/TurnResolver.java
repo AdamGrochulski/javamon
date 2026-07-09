@@ -74,9 +74,10 @@ public final class TurnResolver {
             }
         }
 
-        // 6. Ticki końca tury (status + pogoda)
+        // 6. Ticki końca tury (status + pogoda + ekrany)
         endOfTurnTicks(battle, events);
         weatherEndOfTurn(battle, events);
+        tickScreens(battle, events);
 
         // 7. Ticki mogłby dobić -> sprawdź ponownie
         if (battle.isOver()) {
@@ -231,11 +232,12 @@ public final class TurnResolver {
         int hits = (mh == null) ? 1 : rollHits(mh, battle.getRng());
         int total = 0;
         boolean immune = false;
+        boolean screened = isScreened(battle.side(defender), move.category());
 
         for (int i = 0; i < hits; i++) {
             if (defMon.isFainted()) break;
             DamageResult result = DamageCalculator.calculate(atkMon, defMon, move,
-                    battle.getChart(), battle.getRng(), battle.getWeather());
+                    battle.getChart(), battle.getRng(), battle.getWeather(), screened);
 
             // Immunność typu jest stała między uderzeniami — łapiemy na 1. i kończymy.
             if (result.noEffect()) {
@@ -344,6 +346,14 @@ public final class TurnResolver {
                     // Pogoda globalna — nie dotyczy konkretnego mona. Standard: 5 tur.
                     battle.setWeather(sw.weather(), 5);
                     events.add(new BattleEvent.WeatherStarted(sw.weather()));
+                }
+                case MoveEffect.SetScreen ss -> {
+                    // Ekran na stronie używającego (who = SELF). Aurora Veil tylko w śniegu.
+                    boolean auroraOk = ss.condition() != SideCondition.AURORA_VEIL
+                            || battle.getWeather() == Weather.SNOW;
+                    if (auroraOk && battle.side(who).addTimedCondition(ss.condition(), 5)) {
+                        events.add(new BattleEvent.ScreenSet(who, ss.condition()));
+                    }
                 }
                 case MoveEffect.Flinch f -> {
                     // Ustawia volatile; realny skutek (utrata tury) zależy od kolejności —
@@ -508,6 +518,28 @@ public final class TurnResolver {
 
     private static boolean isType(BattlePokemon mon, Type type) {
         return mon.getPrimary() == type || mon.getSecondary() == type;
+    }
+
+    // Czy strona obrońcy ma ekran pasujący do kategorii ruchu (Aurora Veil kryje obie).
+    private static boolean isScreened(BattleSide defenderSide, MoveCategory category) {
+        if (category == MoveCategory.PHYSICAL) {
+            return defenderSide.hasCondition(SideCondition.REFLECT)
+                    || defenderSide.hasCondition(SideCondition.AURORA_VEIL);
+        }
+        if (category == MoveCategory.SPECIAL) {
+            return defenderSide.hasCondition(SideCondition.LIGHT_SCREEN)
+                    || defenderSide.hasCondition(SideCondition.AURORA_VEIL);
+        }
+        return false;
+    }
+
+    // Odlicza ekrany po obu stronach na końcu tury; emituje ScreenFaded dla wygasłych.
+    static void tickScreens(Battle battle, List<BattleEvent> events) {
+        for (Player p : List.of(P1, P2)) {
+            for (SideCondition expired : battle.side(p).tickTimedConditions()) {
+                events.add(new BattleEvent.ScreenFaded(p, expired));
+            }
+        }
     }
 
     static void endOfTurnTicks(Battle battle, List<BattleEvent> events) {

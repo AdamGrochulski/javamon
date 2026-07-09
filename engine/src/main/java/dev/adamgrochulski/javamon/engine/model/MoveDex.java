@@ -92,6 +92,7 @@ public class MoveDex {
             case "forceSelfSwitch" -> new MoveEffect.ForceSelfSwitch();
             case "flinch" -> new MoveEffect.Flinch(e.chance());
             case "setWeather" -> new MoveEffect.SetWeather(e.weather());
+            case "setScreen" -> new MoveEffect.SetScreen(e.condition());
             default -> throw new IllegalStateException("Nieznany kind efektu w moves.json: " + e.kind());
         };
     }

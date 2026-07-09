@@ -10,6 +10,7 @@ import dev.adamgrochulski.javamon.engine.model.MoveEffect;
 import dev.adamgrochulski.javamon.engine.model.SideCondition;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
 import dev.adamgrochulski.javamon.engine.model.Type;
+import dev.adamgrochulski.javamon.engine.model.Weather;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,8 +73,9 @@ public final class TurnResolver {
             }
         }
 
-        // 6. Ticki końca tury
+        // 6. Ticki końca tury (status + pogoda)
         endOfTurnTicks(battle, events);
+        weatherEndOfTurn(battle, events);
 
         // 7. Ticki mogłby dobić -> sprawdź ponownie
         if (battle.isOver()) {
@@ -231,7 +233,8 @@ public final class TurnResolver {
 
         for (int i = 0; i < hits; i++) {
             if (defMon.isFainted()) break;
-            DamageResult result = DamageCalculator.calculate(atkMon, defMon, move, battle.getChart(), battle.getRng());
+            DamageResult result = DamageCalculator.calculate(atkMon, defMon, move,
+                    battle.getChart(), battle.getRng(), battle.getWeather());
 
             // Immunność typu jest stała między uderzeniami — łapiemy na 1. i kończymy.
             if (result.noEffect()) {
@@ -336,6 +339,11 @@ public final class TurnResolver {
                         events.add(new BattleEvent.HazardSet(who, hz.condition()));
                     }
                 }
+                case MoveEffect.SetWeather sw -> {
+                    // Pogoda globalna — nie dotyczy konkretnego mona. Standard: 5 tur.
+                    battle.setWeather(sw.weather(), 5);
+                    events.add(new BattleEvent.WeatherStarted(sw.weather()));
+                }
                 case MoveEffect.Flinch f -> {
                     // Ustawia volatile; realny skutek (utrata tury) zależy od kolejności —
                     // sprawdzany w executeMove, gdy flincher próbuje się ruszyć.
@@ -406,6 +414,44 @@ public final class TurnResolver {
             eff *= chart.multiplier(Type.ROCK, mon.getSecondary());
         }
         return eff;
+    }
+
+    /**
+     * Koniec tury: chip pogodowy (na razie tylko SANDSTORM rani niekryte typy),
+     * potem odliczenie trwania. SANDSTORM nie rani Rock/Ground/Steel.
+     */
+    static void weatherEndOfTurn(Battle battle, List<BattleEvent> events) {
+        Weather weather = battle.getWeather();
+        if (weather == Weather.NONE) {
+            return;
+        }
+
+        if (weather == Weather.SANDSTORM) {
+            for (Player p : firstBySpeed(battle)) {
+                BattlePokemon mon = battle.side(p).active();
+                if (mon.isFainted() || immuneToSandstorm(mon)) {
+                    continue;
+                }
+                int dmg = Math.max(1, mon.getMaxHp() / 16);
+                mon.takeDamage(dmg);
+                events.add(new BattleEvent.WeatherHurt(ref(battle, p), weather, dmg, mon.getCurrentHp()));
+                if (mon.isFainted()) {
+                    events.add(new BattleEvent.Faint(ref(battle, p)));
+                }
+            }
+        }
+
+        if (battle.tickWeather()) {
+            events.add(new BattleEvent.WeatherEnded(weather));
+        }
+    }
+
+    private static boolean immuneToSandstorm(BattlePokemon mon) {
+        return isType(mon, Type.ROCK) || isType(mon, Type.GROUND) || isType(mon, Type.STEEL);
+    }
+
+    private static boolean isType(BattlePokemon mon, Type type) {
+        return mon.getPrimary() == type || mon.getSecondary() == type;
     }
 
     static void endOfTurnTicks(Battle battle, List<BattleEvent> events) {

@@ -1,6 +1,7 @@
 package dev.adamgrochulski.javamon.engine.battle;
 
 import dev.adamgrochulski.javamon.engine.damage.TypeChart;
+import dev.adamgrochulski.javamon.engine.model.Weather;
 import dev.adamgrochulski.javamon.engine.rng.Rng;
 
 import java.util.List;
@@ -12,6 +13,9 @@ public class Battle {
     private final Rng rng;
     private final TypeChart chart;
     private int turn;
+
+    private Weather weather = Weather.NONE;
+    private int weatherTurns;   // tury pozostałe; 0 przy NONE
 
     public Battle(BattleSide side1, BattleSide side2, Rng rng, TypeChart chart) {
         if(side1 == null) throw new IllegalArgumentException("side1 jest wymagany");
@@ -37,6 +41,28 @@ public class Battle {
 
     public void nextTurn() { turn++; }
     public boolean isOver() { return side1.isDefeated() || side2.isDefeated(); }
+
+    public Weather getWeather() { return weather; }
+
+    /** Ustawia pogodę na {@code turns} tur (NONE = brak; wtedy licznik 0). */
+    public void setWeather(Weather weather, int turns) {
+        this.weather = weather;
+        this.weatherTurns = weather == Weather.NONE ? 0 : Math.max(1, turns);
+    }
+
+    /** Odlicza turę pogody. Zwraca true, jeśli pogoda właśnie wygasła (wróciła do NONE). */
+    public boolean tickWeather() {
+        if (weather == Weather.NONE) {
+            return false;
+        }
+        weatherTurns--;
+        if (weatherTurns <= 0) {
+            weather = Weather.NONE;
+            weatherTurns = 0;
+            return true;
+        }
+        return false;
+    }
 
     public Player winner() {
         boolean p1Dead = side1.isDefeated();

@@ -28,6 +28,9 @@ TYPES = {"Normal", "Fire", "Water", "Grass", "Electric", "Ice", "Fighting",
 STATUS_MAP = {"brn": "BRN", "psn": "PSN", "tox": "TOX", "par": "PAR", "slp": "SLP", "frz": "FRZ"}
 STAT_MAP = {"atk": "ATTACK", "def": "DEFENSE", "spa": "SPECIAL_ATTACK",
             "spd": "SPECIAL_DEFENSE", "spe": "SPEED"}
+WEATHER_MAP = {"raindance": "RAIN", "sunnyday": "SUN", "desolateland": "SUN",
+               "primordialsea": "RAIN", "sandstorm": "SANDSTORM",
+               "hail": "SNOW", "snow": "SNOW", "snowscape": "SNOW"}
 
 # Wykluczamy ruchy niestandardowe / gimmicki (Z, Max, CAP, fan-made, LGPE, przyszłe).
 SKIP_NONSTANDARD = {"CAP", "Future", "Custom", "Gigantamax", "LGPE"}
@@ -153,9 +156,19 @@ def convert(mid, m):
     if mh is not None:
         multihit = [mh, mh] if isinstance(mh, int) else [mh[0], mh[1]]
 
+    # --- pogoda (Rain Dance, Sunny Day, Sandstorm) ---
+    wea = m.get("weather")
+    weather = None
+    if wea:
+        weather = WEATHER_MAP.get(wea.lower())
+        if weather:
+            effects.append({"kind": "setWeather", "weather": weather})
+        else:
+            flag()  # nieznana pogoda
+
     # --- pola jeszcze nieobsługiwane ---
     unsupported = {"ohko": m.get("ohko"),
-                   "weather": m.get("weather"), "terrain": m.get("terrain"),
+                   "terrain": m.get("terrain"),
                    "volatileStatus": prim_volatile, "forceSwitch": m.get("forceSwitch"),
                    "damage": m.get("damage"), "pseudoWeather": m.get("pseudoWeather"),
                    "slotCondition": m.get("slotCondition")}

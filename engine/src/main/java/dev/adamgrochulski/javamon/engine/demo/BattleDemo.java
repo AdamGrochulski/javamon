@@ -81,6 +81,10 @@ public final class BattleDemo {
             case BattleEvent.Immobilized im -> im.who().name() + " nie może się ruszyć ("
                     + im.status() + ")";
             case BattleEvent.Flinched fl  -> fl.who().name() + " wzdryga się i traci turę!";
+            case BattleEvent.WeatherStarted ws -> "Pogoda: " + ws.weather();
+            case BattleEvent.WeatherHurt wh -> wh.who().name() + " obrywa od pogody " + wh.damage()
+                    + " (zostaje " + wh.remainingHp() + " HP)";
+            case BattleEvent.WeatherEnded we -> "Pogoda " + we.weather() + " mija";
             case BattleEvent.Faint f      -> f.who().name() + " pada!";
             case BattleEvent.Switch s     -> s.out().name() + " schodzi, wchodzi " + s.in().name();
             case BattleEvent.Forfeit f    -> f.who() + " się poddaje";

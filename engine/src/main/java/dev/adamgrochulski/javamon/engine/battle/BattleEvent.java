@@ -3,6 +3,7 @@ package dev.adamgrochulski.javamon.engine.battle;
 import dev.adamgrochulski.javamon.engine.model.SideCondition;
 import dev.adamgrochulski.javamon.engine.model.Stat;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
+import dev.adamgrochulski.javamon.engine.model.Weather;
 
 public sealed interface BattleEvent {
 
@@ -37,6 +38,12 @@ public sealed interface BattleEvent {
     record Immobilized(PokemonRef who, StatusCondition status) implements  BattleEvent {}
 
     record Flinched(PokemonRef who) implements BattleEvent {}
+
+    record WeatherStarted(Weather weather) implements BattleEvent {}
+
+    record WeatherHurt(PokemonRef who, Weather weather, int damage, int remainingHp) implements BattleEvent {}
+
+    record WeatherEnded(Weather weather) implements BattleEvent {}
 
     record Forfeit(Player who) implements BattleEvent {}
 

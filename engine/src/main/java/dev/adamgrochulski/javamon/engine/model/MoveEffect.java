@@ -8,7 +8,9 @@ package dev.adamgrochulski.javamon.engine.model;
  * efektu nie przejdzie niezauważony. Kolejne warianty (StatChange, Hazard, ForceSwitch...)
  * dochodzą w następnych krokach Fazy 1.5.
  */
-public sealed interface MoveEffect permits MoveEffect.InflictStatus, MoveEffect.StatChange {
+public sealed interface MoveEffect
+        permits MoveEffect.InflictStatus, MoveEffect.StatChange,
+                MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -44,5 +46,43 @@ public sealed interface MoveEffect permits MoveEffect.InflictStatus, MoveEffect.
                 throw new IllegalArgumentException("chance musi być w 1..100, było: " + chance);
             }
         }
+    }
+
+    /** Leczy cel o {@code percent}% jego maxHp (Recover SELF 50%). Niezależne od zadanych obrażeń. */
+    record Heal(int percent, Target target, int chance) implements MoveEffect {
+        public Heal {
+            if (percent < 1 || percent > 100) {
+                throw new IllegalArgumentException("percent musi być w 1..100, było: " + percent);
+            }
+            if (chance < 1 || chance > 100) {
+                throw new IllegalArgumentException("chance musi być w 1..100, było: " + chance);
+            }
+        }
+    }
+
+    /** Odrzut: używający obrywa {@code percent}% zadanych obrażeń (Brave Bird 33%). Zawsze SELF, 100%. */
+    record Recoil(int percent) implements MoveEffect {
+        public Recoil {
+            if (percent < 1 || percent > 100) {
+                throw new IllegalArgumentException("percent musi być w 1..100, było: " + percent);
+            }
+        }
+
+        @Override public Target target() { return Target.SELF; }
+
+        @Override public int chance() { return 100; }
+    }
+
+    /** Wyssanie: używający leczy się o {@code percent}% zadanych obrażeń (Giga Drain 50%). Zawsze SELF, 100%. */
+    record Drain(int percent) implements MoveEffect {
+        public Drain {
+            if (percent < 1 || percent > 100) {
+                throw new IllegalArgumentException("percent musi być w 1..100, było: " + percent);
+            }
+        }
+
+        @Override public Target target() { return Target.SELF; }
+
+        @Override public int chance() { return 100; }
     }
 }

@@ -261,6 +261,18 @@ public final class TurnResolver {
             return;
         }
 
+        // Łańcuch Protect zrywa się, gdy używamy czegoś innego niż Protect.
+        if (!isProtectMove(move)) {
+            atkMon.resetProtectStreak();
+        }
+
+        // Protect: chroniony przeciwnik blokuje ruch celujący w niego (nie dotyczy
+        // ruchów na siebie, np. Swords Dance).
+        if (defMon.isProtected() && targetsOpponent(move)) {
+            events.add(new BattleEvent.Protected(ref(battle, defender)));
+            return;
+        }
+
         // Ruch STATUS: trafił (accuracy wyżej), więc odpala swoje efekty i kończy.
         // Nie zadaje obrażeń -> damageDealt = 0 (Recoil/Drain nie mają z czego liczyć).
         if (move.category() == MoveCategory.STATUS) {
@@ -310,6 +322,23 @@ public final class TurnResolver {
         if (move.twoTurn() == Move.TwoTurn.RECHARGE) {
             atkMon.setMustRecharge();
         }
+    }
+
+    private static boolean isProtectMove(Move move) {
+        return move.effects().stream().anyMatch(e -> e instanceof MoveEffect.Protect);
+    }
+
+    // Ruch celuje w przeciwnika? Damage zawsze; STATUS tylko gdy ma efekt na OPPONENT.
+    private static boolean targetsOpponent(Move move) {
+        if (move.category() != MoveCategory.STATUS) {
+            return true;
+        }
+        return move.effects().stream().anyMatch(e -> e.target() == MoveEffect.Target.OPPONENT);
+    }
+
+    // Szansa powodzenia Protecta wg długości łańcucha: 100%, ~33%, ~11%...
+    private static int protectSuccessPercent(int streak) {
+        return Math.max(1, (int) (100.0 / Math.pow(3, streak)));
     }
 
     // Obrażenia od uderzenia siebie w zmieszaniu: typeless, fizyczne, moc 40,
@@ -420,6 +449,19 @@ public final class TurnResolver {
                     if (!target.isFainted() && !target.isTrapped()) {
                         target.trap(battle.getRng().nextInt(4, 5));
                         events.add(new BattleEvent.Trapped(ref(battle, who)));
+                    }
+                }
+                case MoveEffect.Protect pr -> {
+                    // Powodzenie maleje z łańcuchem kolejnych Protectów (1, 1/3, 1/9...).
+                    int streak = target.getProtectStreak();
+                    boolean success = streak == 0 || battle.getRng().chance(protectSuccessPercent(streak));
+                    if (success) {
+                        target.setProtected();
+                        target.incProtectStreak();
+                        events.add(new BattleEvent.ProtectStarted(ref(battle, who)));
+                    } else {
+                        target.resetProtectStreak();
+                        events.add(new BattleEvent.MoveFailed(ref(battle, who), move.name()));
                     }
                 }
                 case MoveEffect.Flinch f -> {

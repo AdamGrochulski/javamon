@@ -89,6 +89,9 @@ public final class BattleDemo {
             case BattleEvent.Trapped tp   -> tp.who().name() + " zostaje uwięziony!";
             case BattleEvent.TrapHurt th  -> th.who().name() + " cierpi od uwięzienia " + th.damage();
             case BattleEvent.TrapEnded te -> te.who().name() + " uwalnia się";
+            case BattleEvent.ProtectStarted ps -> ps.who().name() + " chroni się!";
+            case BattleEvent.Protected pd -> "Atak zablokowany — " + pd.who().name() + " się obronił";
+            case BattleEvent.MoveFailed mf -> mf.who().name() + " — " + mf.moveName() + " się nie udało";
             case BattleEvent.WeatherStarted ws -> "Pogoda: " + ws.weather();
             case BattleEvent.WeatherHurt wh -> wh.who().name() + " obrywa od pogody " + wh.damage()
                     + " (zostaje " + wh.remainingHp() + " HP)";

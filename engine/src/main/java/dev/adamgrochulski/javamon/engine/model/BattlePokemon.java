@@ -19,6 +19,10 @@ public class BattlePokemon {
     // Volatile na czas jednej tury — kasowany na końcu tury (clearTurnVolatiles).
     private boolean flinched;
 
+    // Zmieszanie (confusion): licznik tur > 0 = zmieszany. Trwa między turami,
+    // znika po odliczeniu (nie kasowane przez clearTurnVolatiles).
+    private int confusionTurns;
+
     // Stopnie statów bojowych (-6..+6), start 0. Indeksowane przez Stat.ordinal().
     private final int[] stages = new int[Stat.values().length];
 
@@ -213,6 +217,29 @@ public class BattlePokemon {
 
     /** Kasuje volatile'e żyjące tylko jedną turę (flinch). Woła resolver na końcu tury. */
     public void clearTurnVolatiles() { this.flinched = false; }
+
+    /** Nakłada zmieszanie na {@code turns} tur (RNG rolluje wołający). No-op, jeśli już zmieszany. */
+    public void confuse(int turns) {
+        if (turns < 1) {
+            throw new IllegalArgumentException("tury zmieszania muszą być >= 1, było: " + turns);
+        }
+        if (confusionTurns == 0) {
+            confusionTurns = turns;
+        }
+    }
+
+    public boolean isConfused() { return confusionTurns > 0; }
+
+    /**
+     * Odlicza turę zmieszania (wołane przy próbie ruchu). Zwraca true, jeśli po
+     * odliczeniu mon nadal zmieszany (może uderzyć siebie); false = właśnie oprzytomniał.
+     */
+    public boolean tickConfusion() {
+        if (confusionTurns > 0) {
+            confusionTurns--;
+        }
+        return confusionTurns > 0;
+    }
 
     /** Maksymalny (i minimalny, ze znakiem) stopień statu. */
     public static final int MAX_STAGE = 6;

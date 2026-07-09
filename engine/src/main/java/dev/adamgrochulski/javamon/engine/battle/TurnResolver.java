@@ -210,6 +210,22 @@ public final class TurnResolver {
             return;
         }
 
+        // Zmieszanie: odliczamy turę; jeśli nadal zmieszany, 33% na uderzenie siebie
+        // (blok ruchu, bez PP). Oprzytomnienie w tej turze pozwala się ruszyć.
+        if (atkMon.isConfused()) {
+            if (!atkMon.tickConfusion()) {
+                events.add(new BattleEvent.ConfusionEnded(ref(battle, attacker)));
+            } else if (battle.getRng().chance(33)) {
+                int dmg = confusionSelfDamage(atkMon, battle.getRng());
+                atkMon.takeDamage(dmg);
+                events.add(new BattleEvent.ConfusionHit(ref(battle, attacker), dmg, atkMon.getCurrentHp()));
+                if (atkMon.isFainted()) {
+                    events.add(new BattleEvent.Faint(ref(battle, attacker)));
+                }
+                return;
+            }
+        }
+
         Move move = atkMon.useMove(action.moveIndex());
 
         events.add(new BattleEvent.MoveUsed(ref(battle, attacker), move.name()));
@@ -263,6 +279,14 @@ public final class TurnResolver {
 
         // Secondary effects — PO obrażeniach, raz, na sumie zadanych obrażeń (recoil/drain).
         applyEffects(battle, attacker, defender, move, total, events);
+    }
+
+    // Obrażenia od uderzenia siebie w zmieszaniu: typeless, fizyczne, moc 40,
+    // bez STAB/typu/krytyka (własny atak vs własna obrona).
+    private static int confusionSelfDamage(BattlePokemon mon, dev.adamgrochulski.javamon.engine.rng.Rng rng) {
+        int base = (2 * mon.getLevel() / 5 + 2) * 40 * mon.getEffectiveAttack() / mon.getEffectiveDefense() / 50 + 2;
+        double random = rng.nextInt(85, 100) / 100.0;
+        return Math.max(1, (int) (base * random));
     }
 
     // Liczba uderzeń ruchu wielokrotnego. Stała gdy min==max; dla [2,5] rozkład
@@ -353,6 +377,12 @@ public final class TurnResolver {
                             || battle.getWeather() == Weather.SNOW;
                     if (auroraOk && battle.side(who).addTimedCondition(ss.condition(), 5)) {
                         events.add(new BattleEvent.ScreenSet(who, ss.condition()));
+                    }
+                }
+                case MoveEffect.Confuse cf -> {
+                    if (!target.isFainted() && !target.isConfused()) {
+                        target.confuse(battle.getRng().nextInt(1, 4));
+                        events.add(new BattleEvent.ConfusionStarted(ref(battle, who)));
                     }
                 }
                 case MoveEffect.Flinch f -> {

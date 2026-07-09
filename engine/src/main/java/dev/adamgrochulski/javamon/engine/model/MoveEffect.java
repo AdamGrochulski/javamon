@@ -12,7 +12,7 @@ public sealed interface MoveEffect
         permits MoveEffect.InflictStatus, MoveEffect.StatChange,
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
                 MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
-                MoveEffect.SetWeather, MoveEffect.SetScreen {
+                MoveEffect.SetWeather, MoveEffect.SetScreen, MoveEffect.Confuse {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -111,6 +111,18 @@ public sealed interface MoveEffect
         @Override public Target target() { return Target.SELF; }
 
         @Override public int chance() { return 100; }
+    }
+
+    /**
+     * Miesza cel (Confuse Ray 100%, Water Pulse secondary): przez 1-4 tur cel
+     * ma 33% szans uderzyć siebie zamiast ruszyć się. {@code chance} = szansa nałożenia.
+     */
+    record Confuse(Target target, int chance) implements MoveEffect {
+        public Confuse {
+            if (chance < 1 || chance > 100) {
+                throw new IllegalArgumentException("chance musi być w 1..100, było: " + chance);
+            }
+        }
     }
 
     /**

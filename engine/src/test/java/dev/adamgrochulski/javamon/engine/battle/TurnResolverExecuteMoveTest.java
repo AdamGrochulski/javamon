@@ -246,6 +246,40 @@ class TurnResolverExecuteMoveTest {
     }
 
     @Test
+    void damagingMoveAppliesGuaranteedSecondaryStatus() {
+        // ruch damage'owy z secondary 100% burn -> po obrażeniach cel dostaje BRN
+        Move fireFang = new Move("Fire Fang", Type.NORMAL, MoveCategory.PHYSICAL, 100, 100, 15, 0,
+                java.util.List.of(new MoveEffect.InflictStatus(StatusCondition.BRN, MoveEffect.Target.OPPONENT, 100)));
+        Battle b = battle(poke(Type.WATER, 50, fireFang), poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(3, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        assertInstanceOf(BattleEvent.Damage.class, events.get(1));
+        BattleEvent.StatusInflicted si = assertInstanceOf(BattleEvent.StatusInflicted.class, events.get(2));
+        assertEquals(StatusCondition.BRN, si.status());
+        assertEquals(StatusCondition.BRN, b.side(P2).active().getStatus());
+    }
+
+    @Test
+    void secondaryStatusSkippedWhenChanceRollFails() {
+        // secondary 50%; ROLL_100 -> chance(50): 100<=50 false -> brak statusu, tylko damage
+        Move fireFang = new Move("Fire Fang", Type.NORMAL, MoveCategory.PHYSICAL, 100, 100, 15, 0,
+                java.util.List.of(new MoveEffect.InflictStatus(StatusCondition.BRN, MoveEffect.Target.OPPONENT, 50)));
+        Battle b = battle(poke(Type.WATER, 50, fireFang), poke(Type.WATER, 50, TACKLE), ROLL_100);
+        List<BattleEvent> events = new ArrayList<>();
+
+        TurnResolver.executeMove(b, P1, new MoveAction(0), events);
+
+        assertEquals(2, events.size());
+        assertInstanceOf(BattleEvent.MoveUsed.class, events.get(0));
+        assertInstanceOf(BattleEvent.Damage.class, events.get(1));
+        assertEquals(StatusCondition.NONE, b.side(P2).active().getStatus());
+    }
+
+    @Test
     void statusMoveEmitsOnlyMoveUsed() {
         Battle b = battle(poke(Type.WATER, 50, GROWL), poke(Type.WATER, 50, TACKLE), ROLL_100);
         List<BattleEvent> events = new ArrayList<>();

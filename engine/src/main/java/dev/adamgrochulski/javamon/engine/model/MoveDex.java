@@ -24,7 +24,7 @@ public class MoveDex {
     // nie modeluje (ruch ładuje się z podstawą, ale nie odtwarza pełnego działania).
     private record MoveEntry(String name, Type type, MoveCategory category,
                              int power, int accuracy, int pp, int priority,
-                             List<EffectEntry> effects, boolean simplified) {}
+                             List<EffectEntry> effects, int[] multihit, boolean simplified) {}
 
     // Pośredni DTO efektu — pola opcjonalne (null gdy nieużywane przy danym kind).
     private record EffectEntry(String kind, StatusCondition status, Stat stat, Integer stages,
@@ -74,7 +74,11 @@ public class MoveDex {
         List<MoveEffect> effects = e.effects() == null
                 ? List.of()
                 : e.effects().stream().map(MoveDex::toEffect).toList();
-        return new Move(e.name(), e.type(), e.category(), e.power(), e.accuracy(), e.pp(), e.priority(), effects);
+        Move.MultiHit multiHit = (e.multihit() != null && e.multihit().length == 2)
+                ? new Move.MultiHit(e.multihit()[0], e.multihit()[1])
+                : null;
+        return new Move(e.name(), e.type(), e.category(), e.power(), e.accuracy(), e.pp(), e.priority(),
+                effects, multiHit);
     }
 
     private static MoveEffect toEffect(EffectEntry e) {

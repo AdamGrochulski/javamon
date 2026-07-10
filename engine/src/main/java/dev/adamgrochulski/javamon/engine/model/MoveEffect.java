@@ -11,7 +11,7 @@ package dev.adamgrochulski.javamon.engine.model;
 public sealed interface MoveEffect
         permits MoveEffect.InflictStatus, MoveEffect.StatChange,
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
-                MoveEffect.Hazard, MoveEffect.ForceSelfSwitch {
+                MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -110,5 +110,20 @@ public sealed interface MoveEffect
         @Override public Target target() { return Target.SELF; }
 
         @Override public int chance() { return 100; }
+    }
+
+    /**
+     * Cel się wzdryga (Fake Out, Air Slash): jeśli jeszcze nie ruszył w tej turze,
+     * traci turę. Ustawia volatile flag na celu; resolver blokuje ruch, gdy flincher
+     * jest wolniejszy. Zawsze OPPONENT — {@code chance} to szansa secondary (np. 30%).
+     */
+    record Flinch(int chance) implements MoveEffect {
+        public Flinch {
+            if (chance < 1 || chance > 100) {
+                throw new IllegalArgumentException("chance musi być w 1..100, było: " + chance);
+            }
+        }
+
+        @Override public Target target() { return Target.OPPONENT; }
     }
 }

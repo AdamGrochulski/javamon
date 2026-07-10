@@ -16,6 +16,9 @@ public class BattlePokemon {
     private StatusCondition status = StatusCondition.NONE;
     private int statusCounter;
 
+    // Volatile na czas jednej tury — kasowany na końcu tury (clearTurnVolatiles).
+    private boolean flinched;
+
     // Stopnie statów bojowych (-6..+6), start 0. Indeksowane przez Stat.ordinal().
     private final int[] stages = new int[Stat.values().length];
 
@@ -202,6 +205,14 @@ public class BattlePokemon {
             status = StatusCondition.NONE;
         }
     }
+
+    /** Ustawia flinch (wzdrygnięcie) na tę turę. */
+    public void flinch() { this.flinched = true; }
+
+    public boolean isFlinched() { return flinched; }
+
+    /** Kasuje volatile'e żyjące tylko jedną turę (flinch). Woła resolver na końcu tury. */
+    public void clearTurnVolatiles() { this.flinched = false; }
 
     /** Maksymalny (i minimalny, ze znakiem) stopień statu. */
     public static final int MAX_STAGE = 6;

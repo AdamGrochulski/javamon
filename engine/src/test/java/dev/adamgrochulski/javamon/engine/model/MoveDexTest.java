@@ -67,6 +67,8 @@ class MoveDexTest {
         assertInstanceOf(MoveEffect.ForceSelfSwitch.class, dex.get("U-turn").effects().get(0));
         assertInstanceOf(MoveEffect.Recoil.class, dex.get("Brave Bird").effects().get(0));
         assertInstanceOf(MoveEffect.Drain.class, dex.get("Giga Drain").effects().get(0));
+        MoveEffect.SetWeather sw = assertInstanceOf(MoveEffect.SetWeather.class, dex.get("Rain Dance").effects().get(0));
+        assertEquals(Weather.RAIN, sw.weather());
     }
 
     @Test

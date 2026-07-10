@@ -161,7 +161,7 @@ Action {
 { "type": "TURN_START", "turn": 4 }
 ```
 
-Zestaw odpowiada eventom silnika (`BattleEvent`: `MoveUsed`, `MoveMissed`, `Damage`, `NoEffect`, `Immobilized`, `StatusTick`, `StatusInflicted`, `Switch`, `Faint`, `Forfeit`, `BattleEnd`) — warstwa WS mapuje je na JSON. Frontend odtwarza sekwencyjnie z animacją (jak Pokemon Showdown robi swój battle log).
+Zestaw odpowiada eventom silnika (`BattleEvent`: `MoveUsed`, `MoveMissed`, `Damage`, `NoEffect`, `Immobilized`, `StatusTick`, `StatusInflicted`, `StatStageChanged`, `Healed`, `RecoilDamage`, `HazardSet`, `HazardHurt`, `Switch`, `Faint`, `Forfeit`, `BattleEnd`) — warstwa WS mapuje je na JSON. Frontend odtwarza sekwencyjnie z animacją (jak Pokemon Showdown robi swój battle log).
 
 ---
 
@@ -221,19 +221,29 @@ Tackle, Body Slam, Flamethrower, Fire Blast, Surf, Hydro Pump, Thunderbolt, Thun
 
 ### Faza 1: Core engine (tydzień 1–2) — ✅ ukończona
 
-Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`. 82 testy jednostkowe (bez Springa).
+Silnik: czysty Java, moduł Maven, pakiety `model` / `rng` / `damage` / `battle`. 111 testów jednostkowych (bez Springa).
 
-- [x] Model danych: Type, Move (+priority/PP/status), Stats/BattleStats, BattlePokemon, Battle/BattleSide
+- [x] Model danych: Type, Move (+priority/PP/efekty), Stats/BattleStats, BattlePokemon, Battle/BattleSide
 - [x] Macierz efektywności typów (data-driven, `type-chart.json` + Jackson)
 - [x] Formuła obrażeń + STAB + krytyk + random (wstrzykiwany `Rng`, `DamageResult`)
 - [x] Statusy — apply + tick (BRN/PSN/TOX), mody statów (BRN −atak fizyczny, PAR ¼ speed), blokada ruchu (SLP licznik, PAR 25%, FRZ 20% thaw)
-- [x] Ruchy statusowe nakładają swój status na cel (`Move.inflictedStatus` → `StatusInflicted`)
 - [x] Turn resolver: kolejność (switch>move, priority→speed→RNG), wykonanie MOVE/SWITCH/FORFEIT, ticki, wynik
 - [x] Unit testy silnika (bez Spring)
 - [x] Eventy walki (`BattleEvent`) — podstawa renderu i replay
 - [x] Wymuszony switch po faincie (`needsReplacement`/`awaitingReplacement` + `resolveReplacement`)
 
-**Do domknięcia w Fazie 1.5 / przy integracji:** walidacja akcji względem stanu po stronie serwera, entry hazardy, złożone akcje (U-turn/Volt Switch), buffy statów na siebie (Swords Dance), moves.json + loader.
+### Faza 1.5: Pełne mechaniki ruchów — ✅ ukończona
+
+System efektów `MoveEffect` (sealed) na ruchach; resolver stosuje je generycznie (STATUS od razu, damage jako secondary po obrażeniach; szansa 100% pomija rzut RNG).
+
+- [x] Efekty jako `List<MoveEffect>` + secondary chance (np. Flamethrower 10% burn)
+- [x] Stat stages −6..+6 (ułamek na intach) wpięte w damage i speed; efekt `StatChange` (Swords Dance, Growl, Close Combat)
+- [x] Efekty HP: `Heal` (Recover), `Recoil` (Brave Bird), `Drain` (Giga Drain)
+- [x] Entry hazardy: `SideCondition.STEALTH_ROCK`, efekt `Hazard`, obrażenia wejściowe (switch i replacement)
+- [x] Composite: `ForceSelfSwitch` (U-turn/Volt Switch) — MVP auto-pivot na następnego żywego
+- [x] `MoveDex` z `moves.json` (32 ruchy z efektami, data-driven)
+
+**Do domknięcia przy integracji / dalej:** walidacja akcji względem stanu po stronie serwera, multi-hit, buffy z wyborem celu, pivot z wyborem gracza (wymaga protokołu decyzji w środku tury — Faza 2).
 
 ### Faza 2: Backend API (tydzień 2–3)
 - [ ] Spring Boot setup, PostgreSQL schema, JPA entities

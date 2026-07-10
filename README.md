@@ -6,7 +6,7 @@ Projekt nauki: silnik i logikę piszę sam, warstwa po warstwie. Pełna koncepcj
 
 ## Stan
 
-Silnik walk (Faza 1) — kompletny, 82 testy jednostkowe. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), ruchy z PP i priority, wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random), statusy (tick BRN/PSN/TOX, mody statów BRN/PAR, blokada ruchu SLP/PAR/FRZ, nakładane przez ruchy statusowe), turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik), wymuszony switch po faincie i eventy walki pod render/replay.
+Silnik walk (Faza 1 + 1.5) — kompletny, 111 testów jednostkowych. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), stat stages (±6), ruchy z PP/priority i systemem efektów (`MoveEffect`), wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random), statusy (tick BRN/PSN/TOX, mody statów BRN/PAR, blokada ruchu SLP/PAR/FRZ), efekty ruchów (status z szansą, zmiana statów, heal/recoil/drain, entry hazardy Stealth Rock, pivot U-turn/Volt Switch), `MoveDex` z `moves.json`, turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik), wymuszony switch po faincie i eventy walki pod render/replay.
 
 Dalej: Faza 2 — Spring Boot, WebSocket, PostgreSQL/Redis owijające silnik.
 

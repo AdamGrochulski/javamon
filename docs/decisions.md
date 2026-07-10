@@ -2,6 +2,16 @@
 
 Rzeczy, których nie widać z kodu. Najnowsze na górze.
 
+## 2026-07-09 — Faza 1.5: system efektów ruchów
+
+- **`MoveEffect` jako sealed lista na ruchu.** Zamiast pojedynczego `inflictedStatus` ruch trzyma `List<MoveEffect>` (InflictStatus, StatChange, Heal, Recoil, Drain, Hazard, ForceSelfSwitch). Resolver stosuje je generycznie przez exhaustive switch — nowy typ efektu nie przejdzie niezauważony. Delegujące konstruktory `Move` zachowały stare wywołania.
+- **Szansa 100% pomija rzut RNG.** Efekt gwarantowany nie konsumuje losowości → sekwencja RNG deterministycznych ruchów nietknięta, stare testy zielone. Secondary (np. 10% burn) rolluje normalnie.
+- **Modyfikatory w punkcie konsumpcji.** Stat stages liczone jako ułamek na intach (jak w grach, bez floating-point) i wpięte tam, gdzie stat jest czytany: damage (`effective*`) i speed (przed cięciem PAR). Warstwy: stage → status.
+- **Hazardy jako stan strony.** `SideCondition` na `BattleSide` (EnumSet), nie na monie. Obrażenia wejściowe liczone przy każdej zmianie aktywnego (switch i replacement) — jeden helper `applyEntryHazards`.
+- **Pivot (U-turn) = auto-podmiana w MVP.** Silnik nie ma kanału decyzji gracza w środku tury (to protokół Fazy 2), więc `ForceSelfSwitch` bierze następnego żywego z ławki. Wybór gracza dojdzie z protokołem.
+- **`MoveDex` data-driven (jak TypeChart).** `moves.json` z dyskryminatorem `kind` mapowanym ręcznie na `MoveEffect` — prościej niż polimorficzna deserializacja Jacksona. Dodanie ruchu = wiersz JSON.
+- **Multi-hit odłożony.** Zmienia pętlę obliczania obrażeń, nie jest post-efektem jak reszta — osobno, później.
+
 ## 2026-07-08 — Statusy: mody statów i blokada ruchu (domknięcie MVP)
 
 - **Modyfikatory statów w punkcie konsumpcji, nie na `BattlePokemon`.** BRN tnie atak fizyczny (w `DamageCalculator`), PAR ćwiartuje speed (w `TurnResolver.firstBySpeed`). Model trzyma surowe staty; modyfikator liczy ten, kto stat czyta. Spójnie i bez ukrytego stanu.

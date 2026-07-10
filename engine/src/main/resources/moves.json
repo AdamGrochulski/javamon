@@ -1,0 +1,72 @@
+[
+  { "name": "Tackle",       "type": "NORMAL",   "category": "PHYSICAL", "power": 40,  "accuracy": 100, "pp": 35, "priority": 0 },
+  { "name": "Quick Attack", "type": "NORMAL",   "category": "PHYSICAL", "power": 40,  "accuracy": 100, "pp": 30, "priority": 1 },
+  { "name": "Body Slam",    "type": "NORMAL",   "category": "PHYSICAL", "power": 85,  "accuracy": 100, "pp": 15, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "PAR", "target": "OPPONENT", "chance": 30 } ] },
+  { "name": "Hyper Beam",   "type": "NORMAL",   "category": "SPECIAL",  "power": 150, "accuracy": 90,  "pp": 5,  "priority": 0 },
+
+  { "name": "Flamethrower", "type": "FIRE",     "category": "SPECIAL",  "power": 90,  "accuracy": 100, "pp": 15, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "BRN", "target": "OPPONENT", "chance": 10 } ] },
+  { "name": "Fire Blast",   "type": "FIRE",     "category": "SPECIAL",  "power": 110, "accuracy": 85,  "pp": 5,  "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "BRN", "target": "OPPONENT", "chance": 10 } ] },
+
+  { "name": "Surf",         "type": "WATER",    "category": "SPECIAL",  "power": 90,  "accuracy": 100, "pp": 15, "priority": 0 },
+  { "name": "Hydro Pump",   "type": "WATER",    "category": "SPECIAL",  "power": 110, "accuracy": 80,  "pp": 5,  "priority": 0 },
+
+  { "name": "Thunderbolt",  "type": "ELECTRIC", "category": "SPECIAL",  "power": 90,  "accuracy": 100, "pp": 15, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "PAR", "target": "OPPONENT", "chance": 10 } ] },
+  { "name": "Thunder",      "type": "ELECTRIC", "category": "SPECIAL",  "power": 110, "accuracy": 70,  "pp": 10, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "PAR", "target": "OPPONENT", "chance": 30 } ] },
+  { "name": "Volt Switch",  "type": "ELECTRIC", "category": "SPECIAL",  "power": 70,  "accuracy": 100, "pp": 20, "priority": 0,
+    "effects": [ { "kind": "forceSelfSwitch" } ] },
+
+  { "name": "Ice Beam",     "type": "ICE",      "category": "SPECIAL",  "power": 90,  "accuracy": 100, "pp": 10, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "FRZ", "target": "OPPONENT", "chance": 10 } ] },
+  { "name": "Blizzard",     "type": "ICE",      "category": "SPECIAL",  "power": 110, "accuracy": 70,  "pp": 5,  "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "FRZ", "target": "OPPONENT", "chance": 10 } ] },
+
+  { "name": "Earthquake",   "type": "GROUND",   "category": "PHYSICAL", "power": 100, "accuracy": 100, "pp": 10, "priority": 0 },
+  { "name": "Psychic",      "type": "PSYCHIC",  "category": "SPECIAL",  "power": 90,  "accuracy": 100, "pp": 10, "priority": 0,
+    "effects": [ { "kind": "statChange", "stat": "SPECIAL_DEFENSE", "stages": -1, "target": "OPPONENT", "chance": 10 } ] },
+  { "name": "Shadow Ball",  "type": "GHOST",    "category": "SPECIAL",  "power": 80,  "accuracy": 100, "pp": 15, "priority": 0,
+    "effects": [ { "kind": "statChange", "stat": "SPECIAL_DEFENSE", "stages": -1, "target": "OPPONENT", "chance": 20 } ] },
+  { "name": "Dragon Claw",  "type": "DRAGON",   "category": "PHYSICAL", "power": 80,  "accuracy": 100, "pp": 15, "priority": 0 },
+  { "name": "Iron Head",    "type": "STEEL",    "category": "PHYSICAL", "power": 80,  "accuracy": 100, "pp": 15, "priority": 0 },
+  { "name": "Close Combat", "type": "FIGHTING", "category": "PHYSICAL", "power": 120, "accuracy": 100, "pp": 5,  "priority": 0,
+    "effects": [
+      { "kind": "statChange", "stat": "DEFENSE",         "stages": -1, "target": "SELF", "chance": 100 },
+      { "kind": "statChange", "stat": "SPECIAL_DEFENSE", "stages": -1, "target": "SELF", "chance": 100 }
+    ] },
+  { "name": "Poison Jab",   "type": "POISON",   "category": "PHYSICAL", "power": 80,  "accuracy": 100, "pp": 20, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "PSN", "target": "OPPONENT", "chance": 30 } ] },
+
+  { "name": "U-turn",       "type": "BUG",      "category": "PHYSICAL", "power": 70,  "accuracy": 100, "pp": 20, "priority": 0,
+    "effects": [ { "kind": "forceSelfSwitch" } ] },
+  { "name": "Brave Bird",   "type": "FLYING",   "category": "PHYSICAL", "power": 120, "accuracy": 100, "pp": 15, "priority": 0,
+    "effects": [ { "kind": "recoil", "percent": 33 } ] },
+  { "name": "Giga Drain",   "type": "GRASS",    "category": "SPECIAL",  "power": 75,  "accuracy": 100, "pp": 10, "priority": 0,
+    "effects": [ { "kind": "drain", "percent": 50 } ] },
+
+  { "name": "Swords Dance", "type": "NORMAL",   "category": "STATUS",   "power": 0,   "accuracy": 100, "pp": 20, "priority": 0,
+    "effects": [ { "kind": "statChange", "stat": "ATTACK", "stages": 2, "target": "SELF", "chance": 100 } ] },
+  { "name": "Dragon Dance", "type": "DRAGON",   "category": "STATUS",   "power": 0,   "accuracy": 100, "pp": 20, "priority": 0,
+    "effects": [
+      { "kind": "statChange", "stat": "ATTACK", "stages": 1, "target": "SELF", "chance": 100 },
+      { "kind": "statChange", "stat": "SPEED",  "stages": 1, "target": "SELF", "chance": 100 }
+    ] },
+  { "name": "Growl",        "type": "NORMAL",   "category": "STATUS",   "power": 0,   "accuracy": 100, "pp": 40, "priority": 0,
+    "effects": [ { "kind": "statChange", "stat": "ATTACK", "stages": -1, "target": "OPPONENT", "chance": 100 } ] },
+  { "name": "Recover",      "type": "NORMAL",   "category": "STATUS",   "power": 0,   "accuracy": 100, "pp": 5,  "priority": 0,
+    "effects": [ { "kind": "heal", "percent": 50, "target": "SELF", "chance": 100 } ] },
+  { "name": "Stealth Rock", "type": "ROCK",     "category": "STATUS",   "power": 0,   "accuracy": 100, "pp": 20, "priority": 0,
+    "effects": [ { "kind": "hazard", "condition": "STEALTH_ROCK" } ] },
+
+  { "name": "Will-O-Wisp",  "type": "FIRE",     "category": "STATUS",   "power": 0,   "accuracy": 85,  "pp": 15, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "BRN", "target": "OPPONENT", "chance": 100 } ] },
+  { "name": "Thunder Wave", "type": "ELECTRIC", "category": "STATUS",   "power": 0,   "accuracy": 90,  "pp": 20, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "PAR", "target": "OPPONENT", "chance": 100 } ] },
+  { "name": "Toxic",        "type": "POISON",   "category": "STATUS",   "power": 0,   "accuracy": 90,  "pp": 10, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "TOX", "target": "OPPONENT", "chance": 100 } ] },
+  { "name": "Spore",        "type": "GRASS",    "category": "STATUS",   "power": 0,   "accuracy": 100, "pp": 15, "priority": 0,
+    "effects": [ { "kind": "inflictStatus", "status": "SLP", "target": "OPPONENT", "chance": 100 } ] }
+]

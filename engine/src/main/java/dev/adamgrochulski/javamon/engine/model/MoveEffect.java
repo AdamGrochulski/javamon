@@ -12,7 +12,8 @@ public sealed interface MoveEffect
         permits MoveEffect.InflictStatus, MoveEffect.StatChange,
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
                 MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
-                MoveEffect.SetWeather, MoveEffect.SetScreen, MoveEffect.Confuse {
+                MoveEffect.SetWeather, MoveEffect.SetScreen, MoveEffect.Confuse,
+                MoveEffect.Trap {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -119,6 +120,18 @@ public sealed interface MoveEffect
      */
     record Confuse(Target target, int chance) implements MoveEffect {
         public Confuse {
+            if (chance < 1 || chance > 100) {
+                throw new IllegalArgumentException("chance musi być w 1..100, było: " + chance);
+            }
+        }
+    }
+
+    /**
+     * Uwięzienie celu (Wrap, Fire Spin, Whirlpool): chip 1/8 maxHp co turę przez
+     * 4-5 tur i blokada wycofania. {@code chance} = szansa nałożenia (zwykle 100).
+     */
+    record Trap(Target target, int chance) implements MoveEffect {
+        public Trap {
             if (chance < 1 || chance > 100) {
                 throw new IllegalArgumentException("chance musi być w 1..100, było: " + chance);
             }

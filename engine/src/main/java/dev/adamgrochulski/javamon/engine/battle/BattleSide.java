@@ -3,17 +3,18 @@ package dev.adamgrochulski.javamon.engine.battle;
 import dev.adamgrochulski.javamon.engine.model.BattlePokemon;
 import dev.adamgrochulski.javamon.engine.model.SideCondition;
 
-import java.util.EnumSet;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 public class BattleSide {
     private final List<BattlePokemon> team;
     private int activeIndex;
 
     // Hazardy i inne efekty utrzymujące się po tej stronie (nie na konkretnym monie).
-    private final Set<SideCondition> conditions = EnumSet.noneOf(SideCondition.class);
+    // Wartość = liczba warstw (Spikes 1-3, Toxic Spikes 1-2, reszta 1).
+    private final Map<SideCondition, Integer> conditions = new EnumMap<>(SideCondition.class);
 
     public BattleSide(List<BattlePokemon> team) {
         if(team == null || team.isEmpty()) {
@@ -37,9 +38,23 @@ public class BattleSide {
     public List<BattlePokemon> getTeam() { return team; }
     public int getActiveIndex() { return activeIndex; }
 
-    /** Dodaje efekt strony; zwraca false, jeśli już był (bez podwajania). */
-    public boolean addCondition(SideCondition condition) { return conditions.add(condition); }
-    public boolean hasCondition(SideCondition condition) { return conditions.contains(condition); }
+    /** Dodaje warstwę efektu (do maxLayers). Zwraca false, jeśli już przy limicie. */
+    public boolean addCondition(SideCondition condition) {
+        int current = conditions.getOrDefault(condition, 0);
+        if (current >= condition.maxLayers()) {
+            return false;
+        }
+        conditions.put(condition, current + 1);
+        return true;
+    }
+
+    public boolean hasCondition(SideCondition condition) { return conditions.getOrDefault(condition, 0) > 0; }
+
+    /** Liczba warstw efektu (0 = brak). */
+    public int getLayers(SideCondition condition) { return conditions.getOrDefault(condition, 0); }
+
+    /** Usuwa efekt całkowicie (np. Poison-type pochłania Toxic Spikes). */
+    public void removeCondition(SideCondition condition) { conditions.remove(condition); }
 
     public BattlePokemon active() { return team.get(activeIndex); }
     public boolean isDefeated() {

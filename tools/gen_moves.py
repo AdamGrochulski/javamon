@@ -190,8 +190,11 @@ def convert(mid, m):
 
     # Ruchy dwuturowe (charge: Solar Beam, Fly) i z odpoczynkiem (recharge: Hyper Beam).
     flags = m.get("flags", {})
-    if flags.get("charge") or flags.get("recharge"):
-        flag()
+    two_turn = None
+    if flags.get("charge"):
+        two_turn = "CHARGE"
+    elif flags.get("recharge"):
+        two_turn = "RECHARGE"
 
     acc = m.get("accuracy")
     accuracy = 100 if acc is True else int(acc)
@@ -213,6 +216,8 @@ def convert(mid, m):
         entry["effects"] = effects
     if multihit:
         entry["multihit"] = multihit
+    if two_turn:
+        entry["twoTurn"] = two_turn
     if simplified:
         entry["simplified"] = True
     return entry

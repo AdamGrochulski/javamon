@@ -10,7 +10,13 @@ import java.util.List;
 public record Move(
         String name, Type type, MoveCategory category,
         int power, int accuracy, int pp, int priority,
-        List<MoveEffect> effects, MultiHit multiHit) {
+        List<MoveEffect> effects, MultiHit multiHit, TwoTurn twoTurn) {
+
+    /**
+     * Ruch dwuturowy: CHARGE ładuje się turę 1, atakuje turę 2 (Solar Beam, Fly);
+     * RECHARGE atakuje turę 1, wymusza odpoczynek turę 2 (Hyper Beam). NONE = zwykły.
+     */
+    public enum TwoTurn { NONE, CHARGE, RECHARGE }
 
     /**
      * Ruch wielokrotny (Bullet Seed, Double Kick): trafia {@code min}..{@code max} razy,
@@ -52,19 +58,29 @@ public record Move(
             throw new IllegalArgumentException("effects nie może być null (użyj pustej listy)");
         }
         effects = List.copyOf(effects);   // niezmienna kopia obronna
+
+        if (twoTurn == null) {
+            twoTurn = TwoTurn.NONE;
+        }
     }
 
     // Wygodny konstruktor: ruch bez efektów ubocznych.
     // Deleguje do kanonicznego, więc istniejące wywołania 7-argumentowe działają bez zmian.
     public Move(String name, Type type, MoveCategory category,
                 int power, int accuracy, int pp, int priority) {
-        this(name, type, category, power, accuracy, pp, priority, List.of(), null);
+        this(name, type, category, power, accuracy, pp, priority, List.of(), null, TwoTurn.NONE);
     }
 
     // Wygodny konstruktor: ruch z efektami, pojedyncze uderzenie.
     public Move(String name, Type type, MoveCategory category,
                 int power, int accuracy, int pp, int priority, List<MoveEffect> effects) {
-        this(name, type, category, power, accuracy, pp, priority, effects, null);
+        this(name, type, category, power, accuracy, pp, priority, effects, null, TwoTurn.NONE);
+    }
+
+    // Wygodny konstruktor: ruch z efektami i multi-hit, bez trybu dwuturowego.
+    public Move(String name, Type type, MoveCategory category,
+                int power, int accuracy, int pp, int priority, List<MoveEffect> effects, MultiHit multiHit) {
+        this(name, type, category, power, accuracy, pp, priority, effects, multiHit, TwoTurn.NONE);
     }
 
     // Wygodny konstruktor: pojedynczy status nakładany na przeciwnika w 100%
@@ -75,7 +91,7 @@ public record Move(
                 inflictedStatus == null
                         ? List.of()
                         : List.of(new MoveEffect.InflictStatus(inflictedStatus, MoveEffect.Target.OPPONENT, 100)),
-                null);
+                null, TwoTurn.NONE);
     }
 
 }

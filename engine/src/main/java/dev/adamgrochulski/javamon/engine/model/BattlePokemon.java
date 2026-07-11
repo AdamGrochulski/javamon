@@ -23,6 +23,11 @@ public class BattlePokemon {
     // znika po odliczeniu (nie kasowane przez clearTurnVolatiles).
     private int confusionTurns;
 
+    // Stan ruchów dwuturowych: chargingMove != null = ładuje (wypuści w następnej
+    // turze); mustRecharge = odpoczywa po ruchu typu RECHARGE (Hyper Beam).
+    private Move chargingMove;
+    private boolean mustRecharge;
+
     // Stopnie statów bojowych (-6..+6), start 0. Indeksowane przez Stat.ordinal().
     private final int[] stages = new int[Stat.values().length];
 
@@ -229,6 +234,24 @@ public class BattlePokemon {
     }
 
     public boolean isConfused() { return confusionTurns > 0; }
+
+    /** Rozpoczyna ładowanie ruchu dwuturowego (wypuści w następnej turze). */
+    public void startCharge(Move move) { this.chargingMove = move; }
+
+    public boolean isCharging() { return chargingMove != null; }
+
+    /** Wypuszcza naładowany ruch i kasuje stan ładowania. */
+    public Move releaseCharge() {
+        Move move = chargingMove;
+        chargingMove = null;
+        return move;
+    }
+
+    public boolean mustRecharge() { return mustRecharge; }
+
+    public void setMustRecharge() { this.mustRecharge = true; }
+
+    public void clearRecharge() { this.mustRecharge = false; }
 
     /**
      * Odlicza turę zmieszania (wołane przy próbie ruchu). Zwraca true, jeśli po

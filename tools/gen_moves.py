@@ -122,6 +122,9 @@ def convert(mid, m):
         if sec.get("volatileStatus") == "flinch":
             effects.append({"kind": "flinch", "chance": chance})
             consumed.add("volatileStatus")
+        elif sec.get("volatileStatus") == "confusion":
+            effects.append({"kind": "confuse", "target": "OPPONENT", "chance": chance})
+            consumed.add("volatileStatus")
         if any(k not in consumed for k in sec):
             flag()  # confusion, self, dustproof itd.
     if m.get("secondaries"):
@@ -154,6 +157,10 @@ def convert(mid, m):
     if prim_volatile == "flinch":
         effects.append({"kind": "flinch", "chance": 100})
         prim_volatile = None  # obsłużone, nie flaguj niżej
+    elif prim_volatile == "confusion":
+        # Confuse Ray, Swagger, Flatter — miesza cel (na 100%).
+        effects.append({"kind": "confuse", "target": "OPPONENT", "chance": 100})
+        prim_volatile = None
 
     # --- multi-hit: stała liczba (int) lub przedział [min,max] ---
     mh = m.get("multihit")

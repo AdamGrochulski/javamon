@@ -39,6 +39,12 @@ public sealed interface BattleEvent {
 
     record Flinched(PokemonRef who) implements BattleEvent {}
 
+    record ConfusionStarted(PokemonRef who) implements BattleEvent {}
+
+    record ConfusionHit(PokemonRef who, int damage, int remainingHp) implements BattleEvent {}
+
+    record ConfusionEnded(PokemonRef who) implements BattleEvent {}
+
     record WeatherStarted(Weather weather) implements BattleEvent {}
 
     record WeatherHurt(PokemonRef who, Weather weather, int damage, int remainingHp) implements BattleEvent {}

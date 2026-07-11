@@ -85,6 +85,8 @@ public final class BattleDemo {
             case BattleEvent.WeatherHurt wh -> wh.who().name() + " obrywa od pogody " + wh.damage()
                     + " (zostaje " + wh.remainingHp() + " HP)";
             case BattleEvent.WeatherEnded we -> "Pogoda " + we.weather() + " mija";
+            case BattleEvent.ScreenSet sc -> "Ekran " + sc.condition() + " po stronie " + sc.side();
+            case BattleEvent.ScreenFaded sf -> "Ekran " + sf.condition() + " znika (" + sf.side() + ")";
             case BattleEvent.Faint f      -> f.who().name() + " pada!";
             case BattleEvent.Switch s     -> s.out().name() + " schodzi, wchodzi " + s.in().name();
             case BattleEvent.Forfeit f    -> f.who() + " się poddaje";

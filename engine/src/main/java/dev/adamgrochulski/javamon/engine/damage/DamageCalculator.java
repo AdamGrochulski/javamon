@@ -21,10 +21,15 @@ public final class DamageCalculator {
 
     // Wariant bez pogody — zachowuje istniejące wywołania/testy (NONE = brak modyfikatora).
     public static DamageResult calculate(BattlePokemon attacker, BattlePokemon defender, Move move, TypeChart chart, Rng rng) {
-        return calculate(attacker, defender, move, chart, rng, Weather.NONE);
+        return calculate(attacker, defender, move, chart, rng, Weather.NONE, false);
     }
 
     public static DamageResult calculate(BattlePokemon attacker, BattlePokemon defender, Move move, TypeChart chart, Rng rng, Weather weather) {
+        return calculate(attacker, defender, move, chart, rng, weather, false);
+    }
+
+    // {@code screened} = obrona ma aktywny ekran pasujący do kategorii ruchu (Reflect/Light Screen).
+    public static DamageResult calculate(BattlePokemon attacker, BattlePokemon defender, Move move, TypeChart chart, Rng rng, Weather weather, boolean screened) {
         if (move.category() == MoveCategory.STATUS) {
             // ruch niedamage'owy: 0 obrażeń, ale effectiveness 1.0 (to nie immunity)
             return new DamageResult(0, false, 1.0);
@@ -56,8 +61,11 @@ public final class DamageCalculator {
 
         double weatherMult = weatherMultiplier(weather, move.type());
 
+        // Ekran połowi obrażenia, ale krytyk go ignoruje (jak w grach).
+        double screenMult = (screened && !crit) ? 0.5 : 1.0;
+
         // Rzut (int) na końcu = floor (damage nieujemny).
-        int damage = (int) (base * stab * typeEff * critMult * weatherMult * random);
+        int damage = (int) (base * stab * typeEff * critMult * weatherMult * screenMult * random);
 
         return new DamageResult(damage, crit, typeEff);
     }

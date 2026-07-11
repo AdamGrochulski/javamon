@@ -33,6 +33,7 @@ WEATHER_MAP = {"raindance": "RAIN", "sunnyday": "SUN", "desolateland": "SUN",
                "hail": "SNOW", "snow": "SNOW", "snowscape": "SNOW"}
 HAZARD_MAP = {"stealthrock": "STEALTH_ROCK", "spikes": "SPIKES",
               "toxicspikes": "TOXIC_SPIKES", "stickyweb": "STICKY_WEB"}
+SCREEN_MAP = {"reflect": "REFLECT", "lightscreen": "LIGHT_SCREEN", "auroraveil": "AURORA_VEIL"}
 
 # Wykluczamy ruchy niestandardowe / gimmicki (Z, Max, CAP, fan-made, LGPE, przyszłe).
 SKIP_NONSTANDARD = {"CAP", "Future", "Custom", "Gigantamax", "LGPE"}
@@ -134,14 +135,15 @@ def convert(mid, m):
     if m.get("heal"):
         effects.append({"kind": "heal", "percent": pct(m["heal"]), "target": "SELF", "chance": 100})
 
-    # --- hazardy wejściowe ---
+    # --- efekty strony: hazardy (na przeciwnika) i ekrany (na siebie) ---
     sc = m.get("sideCondition")
     if sc:
-        cond = HAZARD_MAP.get(sc)
-        if cond:
-            effects.append({"kind": "hazard", "condition": cond})
+        if sc in HAZARD_MAP:
+            effects.append({"kind": "hazard", "condition": HAZARD_MAP[sc]})
+        elif sc in SCREEN_MAP:
+            effects.append({"kind": "setScreen", "condition": SCREEN_MAP[sc]})
         else:
-            flag()  # reflect, lightscreen, tailwind... później
+            flag()  # tailwind, safeguard, mist... później
 
     # --- pivot ---
     if m.get("selfSwitch"):

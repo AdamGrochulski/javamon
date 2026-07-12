@@ -165,6 +165,11 @@ def convert(mid, m):
         # Wrap, Bind, Fire Spin, Whirlpool — uwięzienie celu (na 100%).
         effects.append({"kind": "trap", "target": "OPPONENT", "chance": 100})
         prim_volatile = None
+    elif prim_volatile == "protect":
+        # Protect, Detect — czysta blokada. Warianty karzące (King's Shield,
+        # Spiky Shield...) mają inny volatileStatus i zostają simplified.
+        effects.append({"kind": "protect"})
+        prim_volatile = None
 
     # --- multi-hit: stała liczba (int) lub przedział [min,max] ---
     mh = m.get("multihit")

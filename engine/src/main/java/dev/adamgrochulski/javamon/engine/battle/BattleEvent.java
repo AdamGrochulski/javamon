@@ -55,6 +55,12 @@ public sealed interface BattleEvent {
 
     record TrapEnded(PokemonRef who) implements BattleEvent {}
 
+    record ProtectStarted(PokemonRef who) implements BattleEvent {}
+
+    record Protected(PokemonRef who) implements BattleEvent {}
+
+    record MoveFailed(PokemonRef who, String moveName) implements BattleEvent {}
+
     record WeatherStarted(Weather weather) implements BattleEvent {}
 
     record WeatherHurt(PokemonRef who, Weather weather, int damage, int remainingHp) implements BattleEvent {}

@@ -13,7 +13,7 @@ public sealed interface MoveEffect
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
                 MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
                 MoveEffect.SetWeather, MoveEffect.SetScreen, MoveEffect.Confuse,
-                MoveEffect.Trap {
+                MoveEffect.Trap, MoveEffect.Protect {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -151,6 +151,17 @@ public sealed interface MoveEffect
         }
 
         @Override public Target target() { return Target.OPPONENT; }
+    }
+
+    /**
+     * Chroni używającego w tej turze (Protect, Detect): blokuje wrogi ruch celujący
+     * w niego. Szansa maleje przy łańcuchu kolejnych użyć. Zawsze SELF, 100%
+     * (właściwe powodzenie rozstrzyga resolver na podstawie łańcucha).
+     */
+    record Protect() implements MoveEffect {
+        @Override public Target target() { return Target.SELF; }
+
+        @Override public int chance() { return 100; }
     }
 
     /**

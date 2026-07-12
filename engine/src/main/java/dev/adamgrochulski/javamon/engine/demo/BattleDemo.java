@@ -92,6 +92,8 @@ public final class BattleDemo {
             case BattleEvent.ProtectStarted ps -> ps.who().name() + " chroni się!";
             case BattleEvent.Protected pd -> "Atak zablokowany — " + pd.who().name() + " się obronił";
             case BattleEvent.MoveFailed mf -> mf.who().name() + " — " + mf.moveName() + " się nie udało";
+            case BattleEvent.Seeded sd    -> sd.who().name() + " zostaje obsiany!";
+            case BattleEvent.LeechSeedDrain ld -> ld.from().name() + " oddaje " + ld.amount() + " HP dla " + ld.to().name();
             case BattleEvent.WeatherStarted ws -> "Pogoda: " + ws.weather();
             case BattleEvent.WeatherHurt wh -> wh.who().name() + " obrywa od pogody " + wh.damage()
                     + " (zostaje " + wh.remainingHp() + " HP)";

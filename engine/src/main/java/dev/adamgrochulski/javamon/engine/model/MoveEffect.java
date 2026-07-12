@@ -13,7 +13,7 @@ public sealed interface MoveEffect
                 MoveEffect.Heal, MoveEffect.Recoil, MoveEffect.Drain,
                 MoveEffect.Hazard, MoveEffect.ForceSelfSwitch, MoveEffect.Flinch,
                 MoveEffect.SetWeather, MoveEffect.SetScreen, MoveEffect.Confuse,
-                MoveEffect.Trap, MoveEffect.Protect {
+                MoveEffect.Trap, MoveEffect.Protect, MoveEffect.LeechSeed {
 
     /** Kogo dotyczy efekt względem używającego ruchu. */
     enum Target { SELF, OPPONENT }
@@ -151,6 +151,16 @@ public sealed interface MoveEffect
         }
 
         @Override public Target target() { return Target.OPPONENT; }
+    }
+
+    /**
+     * Obsiewa cel (Leech Seed): co turę traci on 1/8 maxHp, a obsiewający się leczy.
+     * Trawiaste są odporne. Zawsze OPPONENT, 100%.
+     */
+    record LeechSeed() implements MoveEffect {
+        @Override public Target target() { return Target.OPPONENT; }
+
+        @Override public int chance() { return 100; }
     }
 
     /**

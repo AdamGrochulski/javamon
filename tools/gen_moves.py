@@ -170,6 +170,9 @@ def convert(mid, m):
         # Spiky Shield...) mają inny volatileStatus i zostają simplified.
         effects.append({"kind": "protect"})
         prim_volatile = None
+    elif prim_volatile == "leechseed":
+        effects.append({"kind": "leechSeed"})
+        prim_volatile = None
 
     # --- multi-hit: stała liczba (int) lub przedział [min,max] ---
     mh = m.get("multihit")

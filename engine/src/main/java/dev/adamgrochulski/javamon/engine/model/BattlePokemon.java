@@ -37,6 +37,9 @@ public class BattlePokemon {
     private boolean protectedThisTurn;
     private int protectStreak;
 
+    // Leech Seed: obsiany traci 1/8 maxHp co turę, przeciwnik się leczy. Trwa do zejścia.
+    private boolean leechSeeded;
+
     // Stopnie statów bojowych (-6..+6), start 0. Indeksowane przez Stat.ordinal().
     private final int[] stages = new int[Stat.values().length];
 
@@ -246,6 +249,11 @@ public class BattlePokemon {
     public void incProtectStreak() { protectStreak++; }
 
     public void resetProtectStreak() { protectStreak = 0; }
+
+    /** Obsiewa Leech Seedem (no-op, jeśli już obsiany). */
+    public void seed() { this.leechSeeded = true; }
+
+    public boolean isLeechSeeded() { return leechSeeded; }
 
     /** Nakłada zmieszanie na {@code turns} tur (RNG rolluje wołający). No-op, jeśli już zmieszany. */
     public void confuse(int turns) {

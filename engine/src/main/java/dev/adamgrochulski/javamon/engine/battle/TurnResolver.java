@@ -74,9 +74,10 @@ public final class TurnResolver {
             }
         }
 
-        // 6. Ticki końca tury (status + uwięzienie + pogoda + ekrany)
+        // 6. Ticki końca tury (status + uwięzienie + leech seed + pogoda + ekrany)
         endOfTurnTicks(battle, events);
         trapEndOfTurn(battle, events);
+        leechSeedEndOfTurn(battle, events);
         weatherEndOfTurn(battle, events);
         tickScreens(battle, events);
 
@@ -451,6 +452,13 @@ public final class TurnResolver {
                         events.add(new BattleEvent.Trapped(ref(battle, who)));
                     }
                 }
+                case MoveEffect.LeechSeed ls -> {
+                    // Trawiaste są odporne na Leech Seed.
+                    if (!target.isFainted() && !target.isLeechSeeded() && !isType(target, Type.GRASS)) {
+                        target.seed();
+                        events.add(new BattleEvent.Seeded(ref(battle, who)));
+                    }
+                }
                 case MoveEffect.Protect pr -> {
                     // Powodzenie maleje z łańcuchem kolejnych Protectów (1, 1/3, 1/9...).
                     int streak = target.getProtectStreak();
@@ -647,6 +655,23 @@ public final class TurnResolver {
         for (Player p : List.of(P1, P2)) {
             for (SideCondition expired : battle.side(p).tickTimedConditions()) {
                 events.add(new BattleEvent.ScreenFaded(p, expired));
+            }
+        }
+    }
+
+    /** Koniec tury: Leech Seed drenuje 1/8 maxHp obsianego i leczy o tyle przeciwnika. */
+    static void leechSeedEndOfTurn(Battle battle, List<BattleEvent> events) {
+        for (Player p : firstBySpeed(battle)) {
+            BattlePokemon seeded = battle.side(p).active();
+            if (seeded.isFainted() || !seeded.isLeechSeeded()) {
+                continue;
+            }
+            int amount = Math.max(1, seeded.getMaxHp() / 8);
+            seeded.takeDamage(amount);
+            battle.side(p.opponent()).active().heal(amount);
+            events.add(new BattleEvent.LeechSeedDrain(ref(battle, p), ref(battle, p.opponent()), amount));
+            if (seeded.isFainted()) {
+                events.add(new BattleEvent.Faint(ref(battle, p)));
             }
         }
     }

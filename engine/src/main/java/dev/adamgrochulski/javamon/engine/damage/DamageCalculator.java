@@ -4,6 +4,7 @@ import dev.adamgrochulski.javamon.engine.model.BattlePokemon;
 import dev.adamgrochulski.javamon.engine.model.Move;
 import dev.adamgrochulski.javamon.engine.model.MoveCategory;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
+import dev.adamgrochulski.javamon.engine.model.Terrain;
 import dev.adamgrochulski.javamon.engine.model.Type;
 import dev.adamgrochulski.javamon.engine.model.Weather;
 import dev.adamgrochulski.javamon.engine.rng.Rng;
@@ -25,11 +26,15 @@ public final class DamageCalculator {
     }
 
     public static DamageResult calculate(BattlePokemon attacker, BattlePokemon defender, Move move, TypeChart chart, Rng rng, Weather weather) {
-        return calculate(attacker, defender, move, chart, rng, weather, false);
+        return calculate(attacker, defender, move, chart, rng, weather, false, Terrain.NONE);
     }
 
-    // {@code screened} = obrona ma aktywny ekran pasujący do kategorii ruchu (Reflect/Light Screen).
     public static DamageResult calculate(BattlePokemon attacker, BattlePokemon defender, Move move, TypeChart chart, Rng rng, Weather weather, boolean screened) {
+        return calculate(attacker, defender, move, chart, rng, weather, screened, Terrain.NONE);
+    }
+
+    // {@code screened} = obrona ma ekran pasujący do kategorii; {@code terrain} = teren pola.
+    public static DamageResult calculate(BattlePokemon attacker, BattlePokemon defender, Move move, TypeChart chart, Rng rng, Weather weather, boolean screened, Terrain terrain) {
         if (move.category() == MoveCategory.STATUS) {
             // ruch niedamage'owy: 0 obrażeń, ale effectiveness 1.0 (to nie immunity)
             return new DamageResult(0, false, 1.0);
@@ -64,10 +69,30 @@ public final class DamageCalculator {
         // Ekran połowi obrażenia, ale krytyk go ignoruje (jak w grach).
         double screenMult = (screened && !crit) ? 0.5 : 1.0;
 
+        double terrainMult = terrainMultiplier(terrain, move.type(), attacker, defender);
+
         // Rzut (int) na końcu = floor (damage nieujemny).
-        int damage = (int) (base * stab * typeEff * critMult * weatherMult * screenMult * random);
+        int damage = (int) (base * stab * typeEff * critMult * weatherMult * screenMult * terrainMult * random);
 
         return new DamageResult(damage, crit, typeEff);
+    }
+
+    // Teren wzmacnia pasujący typ ×1.3 dla naziemnego atakującego; MISTY tłumi
+    // Dragon ×0.5, gdy cel naziemny. Naziemność przybliżamy typem (nie-Flying).
+    private static double terrainMultiplier(Terrain terrain, Type moveType, BattlePokemon attacker, BattlePokemon defender) {
+        boolean attackerGrounded = !isFlying(attacker);
+        boolean defenderGrounded = !isFlying(defender);
+        return switch (terrain) {
+            case ELECTRIC -> (attackerGrounded && moveType == Type.ELECTRIC) ? 1.3 : 1.0;
+            case GRASSY -> (attackerGrounded && moveType == Type.GRASS) ? 1.3 : 1.0;
+            case PSYCHIC -> (attackerGrounded && moveType == Type.PSYCHIC) ? 1.3 : 1.0;
+            case MISTY -> (defenderGrounded && moveType == Type.DRAGON) ? 0.5 : 1.0;
+            case NONE -> 1.0;
+        };
+    }
+
+    private static boolean isFlying(BattlePokemon mon) {
+        return mon.getPrimary() == Type.FLYING || mon.getSecondary() == Type.FLYING;
     }
 
     // RAIN wzmacnia Water (1.5) i tłumi Fire (0.5); SUN odwrotnie. Reszta bez zmian.

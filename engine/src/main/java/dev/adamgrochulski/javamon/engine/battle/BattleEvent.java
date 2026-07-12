@@ -3,6 +3,7 @@ package dev.adamgrochulski.javamon.engine.battle;
 import dev.adamgrochulski.javamon.engine.model.SideCondition;
 import dev.adamgrochulski.javamon.engine.model.Stat;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
+import dev.adamgrochulski.javamon.engine.model.Terrain;
 import dev.adamgrochulski.javamon.engine.model.Weather;
 
 public sealed interface BattleEvent {
@@ -76,6 +77,10 @@ public sealed interface BattleEvent {
     record ScreenSet(Player side, SideCondition condition) implements BattleEvent {}
 
     record ScreenFaded(Player side, SideCondition condition) implements BattleEvent {}
+
+    record TerrainStarted(Terrain terrain) implements BattleEvent {}
+
+    record TerrainEnded(Terrain terrain) implements BattleEvent {}
 
     record Forfeit(Player who) implements BattleEvent {}
 

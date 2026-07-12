@@ -29,7 +29,7 @@ public class MoveDex {
 
     // Pośredni DTO efektu — pola opcjonalne (null gdy nieużywane przy danym kind).
     private record EffectEntry(String kind, StatusCondition status, Stat stat, Integer stages,
-                               Integer percent, SideCondition condition, Weather weather,
+                               Integer percent, SideCondition condition, Weather weather, Terrain terrain,
                                MoveEffect.Target target, Integer chance) {}
 
     private final Map<String, Move> byName;
@@ -99,6 +99,7 @@ public class MoveDex {
             case "leechSeed" -> new MoveEffect.LeechSeed();
             case "oneHitKO" -> new MoveEffect.OneHitKO();
             case "setWeather" -> new MoveEffect.SetWeather(e.weather());
+            case "setTerrain" -> new MoveEffect.SetTerrain(e.terrain());
             case "setScreen" -> new MoveEffect.SetScreen(e.condition());
             default -> throw new IllegalStateException("Nieznany kind efektu w moves.json: " + e.kind());
         };

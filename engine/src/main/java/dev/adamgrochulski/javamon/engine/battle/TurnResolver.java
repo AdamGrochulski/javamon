@@ -10,6 +10,7 @@ import dev.adamgrochulski.javamon.engine.model.MoveEffect;
 import dev.adamgrochulski.javamon.engine.model.SideCondition;
 import dev.adamgrochulski.javamon.engine.model.Stat;
 import dev.adamgrochulski.javamon.engine.model.StatusCondition;
+import dev.adamgrochulski.javamon.engine.model.Terrain;
 import dev.adamgrochulski.javamon.engine.model.Type;
 import dev.adamgrochulski.javamon.engine.model.Weather;
 
@@ -74,11 +75,12 @@ public final class TurnResolver {
             }
         }
 
-        // 6. Ticki końca tury (status + uwięzienie + leech seed + pogoda + ekrany)
+        // 6. Ticki końca tury (status + uwięzienie + leech seed + pogoda + teren + ekrany)
         endOfTurnTicks(battle, events);
         trapEndOfTurn(battle, events);
         leechSeedEndOfTurn(battle, events);
         weatherEndOfTurn(battle, events);
+        terrainEndOfTurn(battle, events);
         tickScreens(battle, events);
 
         // 7. Ticki mogłby dobić -> sprawdź ponownie
@@ -304,7 +306,7 @@ public final class TurnResolver {
         for (int i = 0; i < hits; i++) {
             if (defMon.isFainted()) break;
             DamageResult result = DamageCalculator.calculate(atkMon, defMon, move,
-                    battle.getChart(), battle.getRng(), battle.getWeather(), screened);
+                    battle.getChart(), battle.getRng(), battle.getWeather(), screened, battle.getTerrain());
 
             // Immunność typu jest stała między uderzeniami — łapiemy na 1. i kończymy.
             if (result.noEffect()) {
@@ -447,6 +449,11 @@ public final class TurnResolver {
                     // Pogoda globalna — nie dotyczy konkretnego mona. Standard: 5 tur.
                     battle.setWeather(sw.weather(), 5);
                     events.add(new BattleEvent.WeatherStarted(sw.weather()));
+                }
+                case MoveEffect.SetTerrain st -> {
+                    // Teren globalny — nie dotyczy konkretnego mona. Standard: 5 tur.
+                    battle.setTerrain(st.terrain(), 5);
+                    events.add(new BattleEvent.TerrainStarted(st.terrain()));
                 }
                 case MoveEffect.SetScreen ss -> {
                     // Ekran na stronie używającego (who = SELF). Aurora Veil tylko w śniegu.
@@ -645,6 +652,34 @@ public final class TurnResolver {
 
         if (battle.tickWeather()) {
             events.add(new BattleEvent.WeatherEnded(weather));
+        }
+    }
+
+    /**
+     * Koniec tury: GRASSY leczy naziemnych o 1/16 maxHp, potem odliczenie trwania.
+     * Naziemność przybliżamy typem (nie-Flying).
+     */
+    static void terrainEndOfTurn(Battle battle, List<BattleEvent> events) {
+        Terrain terrain = battle.getTerrain();
+        if (terrain == Terrain.NONE) {
+            return;
+        }
+
+        if (terrain == Terrain.GRASSY) {
+            for (Player p : firstBySpeed(battle)) {
+                BattlePokemon mon = battle.side(p).active();
+                if (mon.isFainted() || isType(mon, Type.FLYING)) {
+                    continue;
+                }
+                int healed = mon.heal(Math.max(1, mon.getMaxHp() / 16));
+                if (healed > 0) {
+                    events.add(new BattleEvent.Healed(ref(battle, p), healed, mon.getCurrentHp()));
+                }
+            }
+        }
+
+        if (battle.tickTerrain()) {
+            events.add(new BattleEvent.TerrainEnded(terrain));
         }
     }
 

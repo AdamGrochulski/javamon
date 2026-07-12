@@ -190,9 +190,12 @@ def convert(mid, m):
         else:
             flag()  # nieznana pogoda
 
+    # --- OHKO: natychmiastowy nokaut ---
+    if m.get("ohko"):
+        effects.append({"kind": "oneHitKO"})
+
     # --- pola jeszcze nieobsługiwane ---
-    unsupported = {"ohko": m.get("ohko"),
-                   "terrain": m.get("terrain"),
+    unsupported = {"terrain": m.get("terrain"),
                    "volatileStatus": prim_volatile, "forceSwitch": m.get("forceSwitch"),
                    "damage": m.get("damage"), "pseudoWeather": m.get("pseudoWeather"),
                    "slotCondition": m.get("slotCondition")}

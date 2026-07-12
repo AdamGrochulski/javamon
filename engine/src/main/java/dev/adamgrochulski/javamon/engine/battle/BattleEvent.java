@@ -61,6 +61,8 @@ public sealed interface BattleEvent {
 
     record MoveFailed(PokemonRef who, String moveName) implements BattleEvent {}
 
+    record OneHitKO(PokemonRef target) implements BattleEvent {}
+
     record Seeded(PokemonRef who) implements BattleEvent {}
 
     record LeechSeedDrain(PokemonRef from, PokemonRef to, int amount) implements BattleEvent {}

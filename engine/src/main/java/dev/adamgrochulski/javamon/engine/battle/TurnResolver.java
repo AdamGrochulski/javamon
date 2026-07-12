@@ -274,6 +274,18 @@ public final class TurnResolver {
             return;
         }
 
+        // OHKO: natychmiastowy nokaut po trafieniu; poraża, gdy cel wyższego poziomu.
+        if (hasOhko(move)) {
+            if (defMon.getLevel() > atkMon.getLevel()) {
+                events.add(new BattleEvent.MoveFailed(ref(battle, attacker), move.name()));
+            } else {
+                defMon.takeDamage(defMon.getCurrentHp());
+                events.add(new BattleEvent.OneHitKO(ref(battle, defender)));
+                events.add(new BattleEvent.Faint(ref(battle, defender)));
+            }
+            return;
+        }
+
         // Ruch STATUS: trafił (accuracy wyżej), więc odpala swoje efekty i kończy.
         // Nie zadaje obrażeń -> damageDealt = 0 (Recoil/Drain nie mają z czego liczyć).
         if (move.category() == MoveCategory.STATUS) {
@@ -327,6 +339,10 @@ public final class TurnResolver {
 
     private static boolean isProtectMove(Move move) {
         return move.effects().stream().anyMatch(e -> e instanceof MoveEffect.Protect);
+    }
+
+    private static boolean hasOhko(Move move) {
+        return move.effects().stream().anyMatch(e -> e instanceof MoveEffect.OneHitKO);
     }
 
     // Ruch celuje w przeciwnika? Damage zawsze; STATUS tylko gdy ma efekt na OPPONENT.
@@ -451,6 +467,9 @@ public final class TurnResolver {
                         target.trap(battle.getRng().nextInt(4, 5));
                         events.add(new BattleEvent.Trapped(ref(battle, who)));
                     }
+                }
+                case MoveEffect.OneHitKO ko -> {
+                    // Obsłużone wcześniej w executeMove (przed gałęzią obrażeń) — tu no-op.
                 }
                 case MoveEffect.LeechSeed ls -> {
                     // Trawiaste są odporne na Leech Seed.

@@ -14,6 +14,7 @@
 
     <modules>
         <module>engine</module>
+        <module>app</module>
     </modules>
 
     <properties>
@@ -21,10 +22,22 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.11.4</junit.version>
         <jackson.version>2.18.2</jackson.version>
+        <spring-boot.version>3.5.16</spring-boot.version>
+        <jjwt.version>0.13.0</jjwt.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Importowany tylko po to, żeby moduł app miał spójne wersje.
+                 Silnik go nie widzi — engine/pom.xml nie deklaruje żadnej
+                 zależności ze Springa i ma zostać tak na zawsze. -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
@@ -56,6 +69,13 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.5.2</version>
+                </plugin>
+                <!-- Wersja jawnie, bo parentem projektu nie jest
+                     spring-boot-starter-parent (tylko własny javamon-parent). -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

@@ -45,6 +45,13 @@
     <build>
         <pluginManagement>
             <plugins>
+                <!-- Wersja przypięta: domyślny plugin Mavena 3.8.x (3.1) nie zna
+                     maven.compiler.release i kompiluje na source/target 1.5. -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>

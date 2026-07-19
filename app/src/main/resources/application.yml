@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: javamon
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:javamon}
+    username: ${POSTGRES_USER:javamon}
+    password: ${POSTGRES_PASSWORD}
+
+  jpa:
+    hibernate:
+      # Schemat należy do Flywaya. Hibernate ma go tylko weryfikować —
+      # nigdy nie generować.
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+javamon:
+  jwt:
+    secret: ${JWT_SECRET}
+    ttl: PT24H
+    guest-ttl: PT2H
+  battle:
+    # Brak akcji od gracza w tym czasie -> auto-forfeit.
+    action-timeout: PT30S

@@ -1,0 +1,24 @@
+# Profil lokalny. Wartości pasują do docker-compose.yml w korzeniu repo,
+# żeby `docker compose up -d` + `./mvnw -pl app spring-boot:run` działało
+# bez ustawiania czegokolwiek.
+#
+# To NIE są sekrety — profil prod nie ma tu żadnych wartości domyślnych
+# i wymusza JWT_SECRET oraz POSTGRES_PASSWORD ze środowiska.
+spring:
+  datasource:
+    password: ${POSTGRES_PASSWORD:javamon-dev}
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+javamon:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-nie-uzywac-na-produkcji-min-256-bit}
+
+logging:
+  level:
+    dev.adamgrochulski.javamon: DEBUG
+    org.flywaydb: INFO

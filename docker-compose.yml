@@ -1,0 +1,44 @@
+# Infrastruktura dla developmentu: tylko Postgres i Redis.
+# Aplikacja startuje lokalnie (./mvnw -pl app spring-boot:run) — kontener
+# z appką dojdzie w Fazie 4 razem z deployem na octo.
+#
+#   cp .env.example .env && docker compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: javamon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-javamon}
+      POSTGRES_USER: ${POSTGRES_USER:-javamon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-javamon-dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-javamon} -d ${POSTGRES_DB:-javamon}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: javamon-redis
+    restart: unless-stopped
+    # appendonly: stan aktywnych walk przeżywa restart kontenera.
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:

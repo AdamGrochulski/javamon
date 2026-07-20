@@ -21,7 +21,7 @@ public record Stats(
 
     private static void requirePositive(int value, String name) {
         if (value <= 0) {
-            throw new IllegalArgumentException(name + "musi być dodatnie, było: " + value);
+            throw new IllegalArgumentException(name + " musi być dodatnie, było: " + value);
         }
     }
 }

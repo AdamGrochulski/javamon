@@ -1,8 +1,12 @@
 spring:
   application:
     name: javamon
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # Brak profilu domyślnego jest celowy. Gdyby tu stało `dev`, deploy bez
+  # ustawionej zmiennej środowiskowej wziąłby sekret JWT z application-dev.yml,
+  # który leży w repozytorium — czyli każdy mógłby podpisać sobie token na
+  # dowolne konto. Brak konfiguracji ma kończyć się odmową startu, nie
+  # cichym użyciem znanego klucza.
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:javamon}
@@ -29,10 +33,15 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  # Za Nginx Proxy Managerem: bez tego Spring widzi każde żądanie jako HTTP
+  # z adresu proxy — psuje isSecure(), adres klienta w logach i limity per IP.
+  forward-headers-strategy: framework
 
 javamon:
   jwt:
-    secret: ${JWT_SECRET}
+    # Pusta wartość domyślna, żeby brak zmiennej dał czytelny komunikat
+    # z JwtService, a nie związany literał "${JWT_SECRET}" w kluczu.
+    secret: ${JWT_SECRET:}
     ttl: PT24H
     guest-ttl: PT2H
   battle:

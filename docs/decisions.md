@@ -2,6 +2,46 @@
 
 Rzeczy, których nie widać z kodu. Najnowsze na górze.
 
+## 2026-07-22 — Auth: JWT, konto gościa, fail-closed konfiguracja
+
+Szczegóły i backlog: [`security.md`](security.md).
+
+- **Stateless JWT, token w nagłówku `Authorization`.** Zero sesji po stronie serwera (`SessionCreationPolicy.STATELESS`) — warunek uruchomienia więcej niż jednej instancji za proxy bez współdzielenia sesji. `csrf().disable()` jest bezpieczne **wyłącznie** dlatego, że token nie jest poświadczeniem ambientowym; przeniesienie go do ciasteczka wymaga włączenia CSRF z powrotem.
+- **Payload: `sub`, `name`, `guest` — nic więcej.** Payload jest podpisany, ale jawny. Nie wchodzi tam nic poufnego ani nic zmiennego (rating jest w bazie — token to zamrożona kopia sprzed maks. 24 h). `name` w tokenie oszczędza zapytanie do bazy przy każdym żądaniu.
+- **TTL różne dla gościa (2 h) i konta (24 h), ale filtr o tym nie wie.** Czas życia siedzi w `exp` wewnątrz tokenu i sprawdza go biblioteka przy parsowaniu. Claim `guest` służy do autoryzacji (co wolno), nie do wygasania.
+- **Filtr `JwtAuthenticationFilter` nie jest beanem.** Boot rejestruje każdy bean typu `Filter` dodatkowo w łańcuchu serwletowym — filtr wpięty jednocześnie przez `addFilterBefore` wykonywałby się dwa razy, także poza Spring Security. Tworzy go `SecurityConfig` zwykłym `new`.
+- **Filtr nigdy nie odrzuca żądania sam.** Zły token = pusty `SecurityContext`; odmowę wystawia `AuthorizationFilter` na końcu łańcucha. Jedno miejsce decydujące o dostępie zamiast dwóch do utrzymania w zgodzie.
+- **`DispatcherType.ERROR` na whiteliście.** Od Spring Security 6 autoryzacja obejmuje wszystkie typy dyspozycji, więc wewnętrzne przekierowanie na `/error` wpadało w `anyRequest().authenticated()` i zamieniało każde 400/404/409 na 401. `permitAll` dotyczy tu tylko przekierowań wewnątrz serwera.
+- **Brak profilu domyślnego — awaria konfiguracji ma zamykać, nie otwierać.** `application.yml` nie ustawia `spring.profiles.active`; profil `dev` włącza konfiguracja `spring-boot-maven-plugin`, więc obowiązuje wyłącznie przy `mvn spring-boot:run`. Gdyby `dev` był domyślny, deploy bez zmiennej środowiskowej wziąłby sekret JWT z `application-dev.yml` — pliku w repozytorium.
+- **Ochrona przed enumeracją kont przy logowaniu.** Wspólny komunikat dla „nie ma konta" i „złe hasło" oraz porównanie z `DUMMY_HASH`, gdy konta nie ma — żeby czas odpowiedzi nie zdradzał, które nicki istnieją. Przy rejestracji jest to nie do uniknięcia i zostaje zaakceptowane.
+- **Zgodność sprawdzeń: kontrola przed zapisem to uprzejmość, ograniczenie w bazie to gwarancja.** `existsByUsernameIgnoreCase` obsługuje normalny przypadek, `saveAndFlush` w `try` łapie wyścig dwóch równoległych rejestracji i zamienia go na 409 zamiast 500.
+
+## 2026-07-21 — Persystencja: Flyway + JPA
+
+- **Schemat należy do Flywaya, Hibernate go tylko weryfikuje** (`ddl-auto: validate`). Generowanie schematu z encji jest wygodne i nie nadaje się do produkcji — rozjazd encji ze schematem ma wywalać aplikację przy starcie, nie po cichu migrować bazę.
+- **UUID nadawany przez aplikację, nie bazę.** Id walki musi istnieć w Redisie w chwili utworzenia sesji, na długo przed powstaniem wiersza w Postgresie. Przy `bigserial` trzeba by trzymać dwa identyfikatory albo wstawiać pusty wiersz na starcie. Dodatkowo sekwencyjne id w publicznym URL-u replaya pozwalałoby enumerować cudze walki.
+- **Encje z nadanym id implementują `Persistable`.** Spring Data wybiera `persist` albo `merge` po tym, czy id jest `null`; przy id nadawanym samodzielnie zawsze wyszedłby `merge`, czyli zbędny SELECT przed każdym INSERT-em.
+- **`battles` trzyma snapshot nazw i ratingów z chwili walki.** Rekord historyczny nie może się zmieniać, gdy zmienia się teraźniejszość — zmiana nicka nie przepisuje dawnych walk, a bez `rating_before`/`after` nie da się narysować wykresu ELO.
+- **Soft delete trenerów (`deleted_at`).** Chcemy jednocześnie móc „usunąć konto" i zachować czytelne walki. Konta gościa z rozegranymi walkami i tak nie dają się skasować bez zerwania referencji z `battles`.
+- **Eventy jako jeden dokument `jsonb` w osobnej tabeli `battle_replays`.** `BattleEvent` ma 39 wariantów o różnych polach — relacyjnie byłaby to szeroka tabela z samymi NULL-ami albo EAV. Replay czyta się zawsze w całości i zapisuje raz, po `BattleEnd`. Osobna tabela, żeby listowanie historii nie ciągnęło bloba: `@Basic(fetch = LAZY)` na dużej kolumnie **nie działa** bez bytecode enhancement Hibernate'a.
+- **`team_slots` z czterema kolumnami `move1..move4`, nie osobną tabelą.** Arność stała i mała, kolejność znacząca (protokół WS adresuje ruch indeksem), zero joinów. Normalizacja nie kupiłaby tu nic, a wymusiłaby kolumnę `position` i `ORDER BY` w każdym zapytaniu.
+- **`species_id` to slug z `pokedex.json`, bez klucza obcego.** Dex żyje w jarze silnika, nie w bazie. Slug (`charizard`) zamiast numeru narodowego: `num` nie jest unikalny między formami, a nazwa niesie apostrofy i unicode (`Farfetch'd`, `Nidoran♀`). Integralności pilnuje serwis przy zapisie drużyny.
+
+## 2026-07-20 — Pokédex w silniku
+
+- **Generator ze Showdown (`tools/gen_pokedex.py`), analogicznie do `gen_moves.py`.** Learnsety filtrowane do ruchów obecnych w naszym `moves.json` — dzięki temu żaden gatunek nie wskazuje na ruch, którego `MoveDex` nie zna, i walidacja movesetu nie musi tego sprawdzać drugi raz. 1025 gatunków, średnio 76 ruchów w learnsecie.
+- **Pomijane: formy alternatywne** (mega, regionalne, Gmax) — bez itemów i abilities mega i tak nie ma jak zadziałać. Pomijane też `isNonstandard` i wpisy techniczne (`num <= 0`).
+- **`Species.learnset` jako `Set`, nie `List`.** Jedyne pytanie do learnsetu to „czy ten ruch jest legalny" — `contains` w O(1) zamiast skanu 375 pozycji przy każdym zapisie drużyny. Kolejność nieistotna.
+- **`PokemonDex` bez pośredniego DTO** (inaczej niż `MoveDex`). Tam DTO jest konieczne przez dyskryminator `kind` w efektach; tutaj kształt JSON-a odpowiada rekordowi 1:1, więc Jackson czyta `Species[]` wprost.
+- **`validateLearnsets(MoveDex)` poza konstruktorem.** Dex gatunków nie musi zależeć od dexu ruchów, żeby się załadować. Niezmiennika pilnuje test, produkcja płaci zero.
+
+## 2026-07-19 — Moduł `app`: Spring Boot 3 w multi-module
+
+- **`spring-boot-dependencies` importowany jako BOM, parentem zostaje `javamon-parent`.** Silnik dalej nie ma Springa na classpathie — BOM zarządza wyłącznie wersjami. Cena: `spring-boot-maven-plugin` wymaga jawnej wersji.
+- **`mvnw` przypięty do Mavena 3.9.9** — zamyka TODO z wpisu 2026-07-03. Apt-owy Maven 3.8.7 podstawia `maven-compiler-plugin:3.1`, który nie zna `maven.compiler.release` i kompiluje na source 1.5. Plugin też przypięty jawnie (3.13.0).
+- **Wrapper w wariancie `only-script`** — bez `maven-wrapper.jar`, bo `.gitignore` ignoruje `*.jar`.
+- **`docker-compose.yml` to na razie sama infrastruktura** (Postgres 16, Redis 7 z healthcheckami i nazwanymi wolumenami). Aplikacja dochodzi w Fazie 4 — do tego czasu wygodniej uruchamiać ją lokalnie z hot reloadem.
+
 ## 2026-07-09 — Domknięcie silnika: pełna baza ruchów + mechaniki
 
 - **Pełna baza ~850 ruchów z Pokémon Showdown.** Generator `tools/gen_moves.py` konwertuje ich `moves.json` na nasz schemat. Ruchy z jeszcze niemodelowaną mechaniką dostają flagę `simplified` (ładują się z podstawą — typ/moc/PP — ale bez pełnego działania). Uczciwie nad-flagujemy: cokolwiek nierozpoznanego → simplified. Po każdej nowej mechanice regenerujemy dex i flaga schodzi z pasujących ruchów. Docelowo 708/850 w pełni obsługiwanych, 142 simplified (bespoke singletony: Substitute, Encore, Disable, Counter, fixed-damage...).

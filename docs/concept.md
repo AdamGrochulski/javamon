@@ -245,13 +245,21 @@ System efektów `MoveEffect` (sealed) na ruchach; resolver stosuje je generyczni
 
 **Do domknięcia przy integracji / dalej:** walidacja akcji względem stanu po stronie serwera, multi-hit, buffy z wyborem celu, pivot z wyborem gracza (wymaga protokołu decyzji w środku tury — Faza 2).
 
-### Faza 2: Backend API (tydzień 2–3)
-- [ ] Spring Boot setup, PostgreSQL schema, JPA entities
-- [ ] Auth (JWT) — register/login
-- [ ] REST API: trenerzy, drużyny, Pokémony, movesety
-- [ ] WebSocket: matchmaking (Redis queue), BattleSession
-- [ ] WebSocket handler: akcje → resolve → broadcast
-- [ ] Historia walk + replay storage
+### Faza 2: Backend API (tydzień 2–3) — w toku
+
+- [x] Moduł `app` (Spring Boot 3) w multi-module, `mvnw`, `docker-compose` (Postgres 16 + Redis 7)
+- [x] Pokédex w silniku: `Species` + `PokemonDex` (1025 gatunków ze Showdown, learnsety przefiltrowane do naszego `MoveDex`)
+- [x] Schemat bazy: Flyway `V1__init.sql` — `trainers`, `teams`, `team_slots`, `battles`, `battle_replays`
+- [x] Encje JPA i repozytoria Spring Data
+- [x] Auth (JWT) — register / login / guest, BCrypt, stateless
+- [ ] REST API: Pokédex, drużyny + walidacja movesetów
+- [ ] Protokół WebSocket (`docs/protocol.md`) + handler i rejestr sesji
+- [ ] `BattleSessionService` nad `TurnResolverem`, stan walki w Redisie
+- [ ] WebSocket: matchmaking (Redis queue), pełna pętla walki
+- [ ] Historia walk + replay storage + leaderboard ELO
+
+Backlog bezpieczeństwa (limity prób logowania, sprzątanie kont gościa, kontrakt
+błędów, CORS): [`security.md`](security.md).
 
 ### Faza 3: Frontend MVP (tydzień 3–4)
 - [ ] Team builder

@@ -6,37 +6,59 @@ Projekt nauki: silnik i logikę piszę sam, warstwa po warstwie. Pełna koncepcj
 
 ## Stan
 
-Silnik walk (Faza 1 + 1.5) — kompletny, 157 testów jednostkowych. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), stat stages (±6), ruchy z PP/priority i systemem efektów (`MoveEffect`), wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random / pogoda / teren / ekrany), statusy (tick BRN/PSN/TOX, mody statów BRN/PAR, blokada ruchu SLP/PAR/FRZ), efekty ruchów (status z szansą, zmiana statów, heal/recoil/drain, flinch, confusion, multi-hit, ruchy dwuturowe charge/recharge, OHKO, partial trap, protect, leech seed), efekty pola (pogoda rain/sun/sand/snow, teren electric/grassy/misty/psychic, entry hazardy Stealth Rock/Spikes/Toxic Spikes/Sticky Web, ekrany Reflect/Light Screen/Aurora Veil), pivot U-turn/Volt Switch, `MoveDex` z pełną bazą ~850 ruchów (Pokémon Showdown), turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik), wymuszony switch po faincie i eventy walki pod render/replay.
+**Faza 1 + 1.5 — silnik walk: ukończone.** 165 testów jednostkowych, zero zależności od frameworka. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), stat stages (±6), ruchy z PP/priority i systemem efektów (`MoveEffect`), wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random / pogoda / teren / ekrany), statusy (tick BRN/PSN/TOX, mody statów BRN/PAR, blokada ruchu SLP/PAR/FRZ), efekty ruchów (status z szansą, zmiana statów, heal/recoil/drain, flinch, confusion, multi-hit, ruchy dwuturowe charge/recharge, OHKO, partial trap, protect, leech seed), efekty pola (pogoda rain/sun/sand/snow, teren electric/grassy/misty/psychic, entry hazardy Stealth Rock/Spikes/Toxic Spikes/Sticky Web, ekrany Reflect/Light Screen/Aurora Veil), pivot U-turn/Volt Switch, turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik), wymuszony switch po faincie i eventy walki pod render/replay.
 
-Baza ruchów: 850 wpisów, 708 w pełni obsługiwanych, 142 z flagą `simplified` (ładują się z podstawą, ich unikatowa mechanika — Substitute, Encore, Disable, fixed-damage itd. — dojdzie później albo zostaje jako pojedynczy przypadek).
+**Faza 2 — backend: w toku.** Zrobione: moduł `app` (Spring Boot 3) w multi-module, Pokédex w silniku (`Species` / `PokemonDex`), schemat bazy przez Flyway, encje JPA i repozytoria, auth JWT (register / login / konto gościa). Dalej: REST, protokół WebSocket, sesje walk w Redisie, matchmaking, replay i ranking.
 
-Dalej: Faza 2 — Spring Boot, WebSocket, PostgreSQL/Redis owijające silnik.
+### Dane
+
+- **Ruchy:** 850 wpisów z Pokémon Showdown — 708 w pełni obsługiwanych, 142 z flagą `simplified` (ładują się z podstawą, ich unikatowa mechanika — Substitute, Encore, Disable, fixed-damage itd. — dojdzie później albo zostaje jako pojedynczy przypadek).
+- **Gatunki:** 1025 wpisów, średnio 76 ruchów w learnsecie. Learnsety są przefiltrowane do ruchów obecnych w `moves.json`, więc żaden gatunek nie wskazuje na ruch, którego silnik nie zna.
+
+Oba pliki generują skrypty z `tools/` — dane są oddzielone od kodu, dodanie ruchu czy gatunku nie wymaga rekompilacji.
 
 ## Stack
 
-Java 21 · Maven · JUnit 5 · (dalej: Spring Boot, PostgreSQL, Redis, React/TS)
+Java 21 · Maven (multi-module) · JUnit 5 · Spring Boot 3 · Spring Security (JWT) · JPA/Hibernate · Flyway · PostgreSQL 16 · Redis 7 · (dalej: React/TypeScript)
 
-## Build
+## Uruchomienie lokalne
 
+Wymagane: JDK 21+ i Docker.
+
+```bash
+docker compose up -d                  # Postgres + Redis
+./mvnw test                           # cały build, 165 testów
+./mvnw -pl app spring-boot:run        # backend na :8080
 ```
-mvn test
+
+`spring-boot:run` sam włącza profil `dev` (konfiguracja w `app/pom.xml`), który
+podstawia lokalne wartości pasujące do `docker-compose.yml`. **Zbudowany jar nie
+ma profilu domyślnego** — bez `SPRING_PROFILES_ACTIVE` i `JWT_SECRET` nie wstanie.
+Zmienne dla własnego środowiska: skopiuj `.env.example` do `.env`.
+
+Szybki test auth:
+
+```bash
+curl -X POST localhost:8080/api/auth/guest
 ```
 
-Wymaga JDK 21+.
-
-## Demo
+## Demo silnika
 
 `BattlePokemon` gra sam ze sobą i wypisuje przebieg walki na konsolę — klasa `dev.adamgrochulski.javamon.engine.demo.BattleDemo` (`main`). Deterministyczne (seed RNG), pokazuje obrażenia, efektywność typów, krytyki i eskalację statusu TOX.
 
-```
-mvn -pl engine exec:java
+```bash
+./mvnw -pl engine exec:java
 ```
 
 ## Struktura
 
 - `engine/` — silnik walk, czysty Java, zero zależności od frameworka
-  - `model` — dane i stan (typy, staty, ruchy, BattlePokemon)
+  - `model` — dane i stan (typy, staty, ruchy, gatunki, `BattlePokemon`)
   - `rng` — wstrzykiwana losowość (determinizm)
   - `damage` — macierz typów + kalkulator obrażeń
   - `battle` — akcje, eventy, stan walki, turn resolver
-- `docs/` — koncept i dziennik decyzji
+- `app/` — Spring Boot: REST, WebSocket, persystencja. Zależność idzie w jedną stronę: `app` → `engine`
+  - `auth` — JWT, konfiguracja bezpieczeństwa, rejestracja i logowanie
+  - `persistence` — encje JPA i repozytoria; migracje w `resources/db/migration`
+- `tools/` — generatory danych ze źródeł Pokémon Showdown
+- `docs/` — [koncepcja](docs/concept.md), [dziennik decyzji](docs/decisions.md), [bezpieczeństwo](docs/security.md)

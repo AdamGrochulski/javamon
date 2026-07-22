@@ -119,6 +119,15 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Profil dev tylko dla lokalnego `mvn spring-boot:run`.
+                         Zbudowany jar NIE ma profilu domyślnego: bez
+                         SPRING_PROFILES_ACTIVE i JWT_SECRET nie wystartuje,
+                         zamiast po cichu wziąć sekret z application-dev.yml. -->
+                    <profiles>
+                        <profile>dev</profile>
+                    </profiles>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

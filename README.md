@@ -27,9 +27,18 @@ Wymagane: JDK 21+ i Docker.
 
 ```bash
 docker compose up -d                  # Postgres + Redis
-./mvnw test                           # cały build, 165 testów
+./mvnw test                           # cały build, 190 testów
+./mvnw install -DskipTests            # instaluje javamon-engine do ~/.m2
 ./mvnw -pl app spring-boot:run        # backend na :8080
 ```
+
+Krok z `install` jest konieczny po **każdej zmianie w silniku**: `-pl app`
+buduje tylko moduł `app`, a `javamon-engine` bierze jako gotowy jar z lokalnego
+repozytorium. Bez tego dostaniesz `ClassNotFoundException` na klasie, którą
+przed chwilą dodałeś. Alternatywa jednym poleceniem: `./mvnw -pl app -am spring-boot:run`.
+
+Po zmianie w `pom.xml` potrzebny jest `clean` — Maven kompiluje przyrostowo po
+datach plików źródłowych i samej zmiany konfiguracji nie zauważy.
 
 `spring-boot:run` sam włącza profil `dev` (konfiguracja w `app/pom.xml`), który
 podstawia lokalne wartości pasujące do `docker-compose.yml`. **Zbudowany jar nie

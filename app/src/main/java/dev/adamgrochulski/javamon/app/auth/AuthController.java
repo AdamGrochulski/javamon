@@ -29,7 +29,11 @@ public class AuthController {
         return authService.login(request.username(), request.password());
     }
 
-    /** Wejście bez rejestracji — token krótkożyjący, bez możliwości zapisu drużyn. */
+    /**
+     * Wejście bez rejestracji. Token krótkożyjący; konto jest pełnoprawne
+     * (gość musi móc zbudować drużynę, żeby w ogóle wejść do walki), ale
+     * podlega sprzątaniu — patrz docs/security.md, pozycja B2.
+     */
     @PostMapping("/guest")
     public AuthResponse guest() {
         return authService.guest();

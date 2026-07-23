@@ -38,8 +38,16 @@ public class Team {
         this.createdAt = Instant.now();
     }
 
-    public void replaceSlots(List<TeamSlot> newSlots) {
+    /**
+     * Rozdzielone od {@link #addSlots} celowo: między jednym a drugim serwis
+     * musi wymusić flush, bo Hibernate wykonuje INSERT-y przed DELETE-ami
+     * i nowy slot_index zderzyłby się ze starym, jeszcze nieusuniętym.
+     */
+    public void clearSlots() {
         slots.clear();
+    }
+
+    public void addSlots(List<TeamSlot> newSlots) {
         newSlots.forEach(this::addSlot);
     }
 

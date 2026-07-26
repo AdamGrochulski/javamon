@@ -70,4 +70,4 @@ curl -X POST localhost:8080/api/auth/guest
   - `auth` — JWT, konfiguracja bezpieczeństwa, rejestracja i logowanie
   - `persistence` — encje JPA i repozytoria; migracje w `resources/db/migration`
 - `tools/` — generatory danych ze źródeł Pokémon Showdown
-- `docs/` — [koncepcja](docs/concept.md), [dziennik decyzji](docs/decisions.md), [bezpieczeństwo](docs/security.md)
+- `docs/` — [koncepcja](docs/concept.md), [dziennik decyzji](docs/decisions.md), [protokół WebSocket](docs/protocol.md), [bezpieczeństwo](docs/security.md)

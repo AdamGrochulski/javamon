@@ -8,7 +8,7 @@ Projekt nauki: silnik i logikę piszę sam, warstwa po warstwie. Pełna koncepcj
 
 **Faza 1 + 1.5 — silnik walk: ukończone.** 165 testów jednostkowych, zero zależności od frameworka. Gotowe: typy + macierz efektywności (data-driven), staty (bazowe i przeliczone na poziom), stat stages (±6), ruchy z PP/priority i systemem efektów (`MoveEffect`), wstrzykiwany RNG (determinizm), formuła obrażeń (STAB / krytyk / random / pogoda / teren / ekrany), statusy (tick BRN/PSN/TOX, mody statów BRN/PAR, blokada ruchu SLP/PAR/FRZ), efekty ruchów (status z szansą, zmiana statów, heal/recoil/drain, flinch, confusion, multi-hit, ruchy dwuturowe charge/recharge, OHKO, partial trap, protect, leech seed), efekty pola (pogoda rain/sun/sand/snow, teren electric/grassy/misty/psychic, entry hazardy Stealth Rock/Spikes/Toxic Spikes/Sticky Web, ekrany Reflect/Light Screen/Aurora Veil), pivot U-turn/Volt Switch, turn resolver (kolejność akcji, MOVE/SWITCH/FORFEIT, ticki, wynik), wymuszony switch po faincie i eventy walki pod render/replay.
 
-**Faza 2 — backend: w toku.** Zrobione: moduł `app` (Spring Boot 3) w multi-module, Pokédex w silniku (`Species` / `PokemonDex`), schemat bazy przez Flyway, encje JPA i repozytoria, auth JWT (register / login / konto gościa). Dalej: REST, protokół WebSocket, sesje walk w Redisie, matchmaking, replay i ranking.
+**Faza 2 — backend: w toku.** Zrobione: moduł `app` (Spring Boot 3) w multi-module, Pokédex w silniku (`Species` / `PokemonDex`), schemat bazy przez Flyway, encje JPA i repozytoria, auth JWT (register / login / konto gościa), REST (pokedex, CRUD drużyn z walidacją movesetów po stronie serwera), [protokół WebSocket](docs/protocol.md) wraz z handlerem i rejestrem sesji. Dalej: sesje walk w Redisie, matchmaking, replay i ranking.
 
 ### Dane
 
@@ -27,7 +27,7 @@ Wymagane: JDK 21+ i Docker.
 
 ```bash
 docker compose up -d                  # Postgres + Redis
-./mvnw test                           # cały build, 190 testów
+./mvnw test                           # cały build, 208 testów
 ./mvnw install -DskipTests            # instaluje javamon-engine do ~/.m2
 ./mvnw -pl app spring-boot:run        # backend na :8080
 ```

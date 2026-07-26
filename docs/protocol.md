@@ -283,7 +283,13 @@ Ten sam kształt co błędy REST (`error` → tu `code`), żeby front miał jedn
 | `action_already_submitted` | Druga akcja na tę samą turę |
 | `not_in_battle` | `battleId` nie istnieje albo nie jesteś jego uczestnikiem |
 | `team_invalid` | Drużyna z `QUEUE_JOIN` nie istnieje lub nie należy do ciebie |
+| `not_implemented` | Ramka poprawna i znana, ale funkcja jeszcze nie działa |
 | `internal_error` | Cokolwiek innego; szczegóły wyłącznie do logu |
+
+`not_implemented` istnieje, bo protokół jest kompletny wcześniej niż jego
+implementacja: transport i uwierzytelnienie działają od Kroku 6, walki dochodzą
+w Kroku 7, matchmaking w Kroku 8. Klient dostaje jednoznaczną odpowiedź zamiast
+`internal_error`, który sugerowałby awarię.
 
 `ERROR` nie zamyka połączenia. Zamknięcie to osobna decyzja, opisana niżej.
 

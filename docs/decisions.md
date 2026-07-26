@@ -12,6 +12,7 @@ Pełny kontrakt: [`protocol.md`](protocol.md).
 - **`REQUEST_ACTION` niesie listę legalnych akcji, ale to podpowiedź do renderowania, nie autoryzacja.** Gdyby klient liczył legalność sam, ta logika istniałaby w Javie i TypeScripcie naraz i musiałaby się zgadzać co do joty. Serwer i tak waliduje każdą akcję od zera.
 - **Drużyna przeciwnika jest informacją ukrytą — eventy filtrowane per odbiorca.** Ukrywanie w UI nic nie daje, bo wystarczy zakładka Network. Konsekwencja: nie ma broadcastu jednym stringiem do obu graczy. HP przeciwnika w procentach, bo dokładna wartość zdradza staty.
 - **`seq` w kopercie ramek serwer→klient.** Numer porządkowy w obrębie walki, wyłącznie po to, żeby po zerwaniu połączenia dało się dosłać brakujące ramki (`RESUME` z `lastSeq`). Timer tury nie zatrzymuje się na czas rozłączenia — inaczej wystarczyłoby wyciągnąć wtyczkę, żeby zawiesić przegrywaną walkę.
+- **`QUEUE_JOIN` kopiuje skład drużyny do sesji walki.** Walka nie zależy od tabeli `teams` — usunięcie drużyny w trakcie nie ma prawa jej przerwać ani zepsuć replaya. Ta sama zasada, co snapshot nazw i ratingów w `battles`: rekord historyczny nie zmienia się, gdy zmienia się teraźniejszość.
 - **`ERROR` nie zamyka połączenia, zamknięcie jest osobną decyzją.** Nieznana ramka może pochodzić od nowszego klienta; zerwanie połączenia z tego powodu byłoby nieproporcjonalne. Zamykamy tylko przy problemie z tożsamością (4401, 4408, 4409).
 
 ## 2026-07-22 — Auth: JWT, konto gościa, fail-closed konfiguracja

@@ -253,7 +253,7 @@ System efektów `MoveEffect` (sealed) na ruchach; resolver stosuje je generyczni
 - [x] Encje JPA i repozytoria Spring Data
 - [x] Auth (JWT) — register / login / guest, BCrypt, stateless
 - [x] REST API: Pokédex, drużyny + walidacja movesetów (kontrakt błędów 400/401/404/409/422, CORS)
-- [ ] Protokół WebSocket (`docs/protocol.md`) + handler i rejestr sesji
+- [x] Protokół WebSocket (`docs/protocol.md`) + handler i rejestr sesji
 - [ ] `BattleSessionService` nad `TurnResolverem`, stan walki w Redisie
 - [ ] WebSocket: matchmaking (Redis queue), pełna pętla walki
 - [ ] Historia walk + replay storage + leaderboard ELO

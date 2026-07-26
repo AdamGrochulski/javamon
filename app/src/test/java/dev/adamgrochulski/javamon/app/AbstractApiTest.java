@@ -22,8 +22,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * kontener po pierwszej klasie, a druga dostawałaby DataSource wskazujący
  * na martwą bazę (30 s czekania na połączenie i timeout Hikari).
  * Kontener sprząta Ryuk przy końcu JVM.
+ * <p>
+ * RANDOM_PORT, a nie domyślny MOCK: konfiguracja WebSocketu sięga po
+ * {@code jakarta.websocket.server.ServerContainer}, którego atrapa
+ * ServletContextu nie ma. MockMvc działa niezależnie od tego, czy serwer
+ * faktycznie nasłuchuje, a testy WS mogą dzięki temu współdzielić ten sam
+ * kontekst zamiast startować drugi kontener Postgresa.
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 abstract class AbstractApiTest {

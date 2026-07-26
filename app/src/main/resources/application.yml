@@ -47,6 +47,9 @@ javamon:
   battle:
     # Brak akcji od gracza w tym czasie -> auto-forfeit.
     action-timeout: PT30S
+  ws:
+    # Ile czasu połączenie ma na przysłanie ramki AUTH, zanim je zamkniemy (4408).
+    auth-timeout: PT10S
   cors:
     # Lokalnie ustawia to profil dev. Na produkcji: CORS_ORIGINS=https://battle.adamgrochulski.dev
     allowed-origins: ${CORS_ORIGINS:}

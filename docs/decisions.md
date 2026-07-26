@@ -2,6 +2,18 @@
 
 Rzeczy, których nie widać z kodu. Najnowsze na górze.
 
+## 2026-07-26 — Protokół WebSocket
+
+Pełny kontrakt: [`protocol.md`](protocol.md).
+
+- **Token JWT w pierwszej ramce `AUTH`, nie w query paramie.** Przeglądarkowe `new WebSocket(url)` nie pozwala ustawić nagłówka `Authorization`, więc token musi pójść inaczej. Query param `?token=` odpada: URL trafia do logów Nginxa, logów proxy i historii przeglądarki, czyli w miejsca poza kontrolą aplikacji. Ceną jest połączenie istniejące przed uwierzytelnieniem — ograniczone timeoutem 10 s i zakazem wysyłania czegokolwiek poza `AUTH`.
+- **Jedno konto = jedna sesja.** Drugie połączenie rozłącza pierwsze kodem 4409. Dwie karty przeglądarki w tej samej walce czynią kolejność akcji nieokreśloną, a serwer autorytatywny nie może mieć niedookreślonej kolejności.
+- **Akcje niosą numer tury.** Bez tego akcja spóźniona przez lag zostałaby policzona w następnej turze, czyli w zupełnie innej sytuacji na polu. Przy okazji rozwiązuje to duplikaty: druga akcja na tę samą turę jest odrzucana, więc klient może retransmitować bez ryzyka podwójnego wykonania.
+- **`REQUEST_ACTION` niesie listę legalnych akcji, ale to podpowiedź do renderowania, nie autoryzacja.** Gdyby klient liczył legalność sam, ta logika istniałaby w Javie i TypeScripcie naraz i musiałaby się zgadzać co do joty. Serwer i tak waliduje każdą akcję od zera.
+- **Drużyna przeciwnika jest informacją ukrytą — eventy filtrowane per odbiorca.** Ukrywanie w UI nic nie daje, bo wystarczy zakładka Network. Konsekwencja: nie ma broadcastu jednym stringiem do obu graczy. HP przeciwnika w procentach, bo dokładna wartość zdradza staty.
+- **`seq` w kopercie ramek serwer→klient.** Numer porządkowy w obrębie walki, wyłącznie po to, żeby po zerwaniu połączenia dało się dosłać brakujące ramki (`RESUME` z `lastSeq`). Timer tury nie zatrzymuje się na czas rozłączenia — inaczej wystarczyłoby wyciągnąć wtyczkę, żeby zawiesić przegrywaną walkę.
+- **`ERROR` nie zamyka połączenia, zamknięcie jest osobną decyzją.** Nieznana ramka może pochodzić od nowszego klienta; zerwanie połączenia z tego powodu byłoby nieproporcjonalne. Zamykamy tylko przy problemie z tożsamością (4401, 4408, 4409).
+
 ## 2026-07-22 — Auth: JWT, konto gościa, fail-closed konfiguracja
 
 Szczegóły i backlog: [`security.md`](security.md).
@@ -23,7 +35,7 @@ Szczegóły i backlog: [`security.md`](security.md).
 - **Encje z nadanym id implementują `Persistable`.** Spring Data wybiera `persist` albo `merge` po tym, czy id jest `null`; przy id nadawanym samodzielnie zawsze wyszedłby `merge`, czyli zbędny SELECT przed każdym INSERT-em.
 - **`battles` trzyma snapshot nazw i ratingów z chwili walki.** Rekord historyczny nie może się zmieniać, gdy zmienia się teraźniejszość — zmiana nicka nie przepisuje dawnych walk, a bez `rating_before`/`after` nie da się narysować wykresu ELO.
 - **Soft delete trenerów (`deleted_at`).** Chcemy jednocześnie móc „usunąć konto" i zachować czytelne walki. Konta gościa z rozegranymi walkami i tak nie dają się skasować bez zerwania referencji z `battles`.
-- **Eventy jako jeden dokument `jsonb` w osobnej tabeli `battle_replays`.** `BattleEvent` ma 39 wariantów o różnych polach — relacyjnie byłaby to szeroka tabela z samymi NULL-ami albo EAV. Replay czyta się zawsze w całości i zapisuje raz, po `BattleEnd`. Osobna tabela, żeby listowanie historii nie ciągnęło bloba: `@Basic(fetch = LAZY)` na dużej kolumnie **nie działa** bez bytecode enhancement Hibernate'a.
+- **Eventy jako jeden dokument `jsonb` w osobnej tabeli `battle_replays`.** `BattleEvent` ma 38 wariantów o różnych polach — relacyjnie byłaby to szeroka tabela z samymi NULL-ami albo EAV. Replay czyta się zawsze w całości i zapisuje raz, po `BattleEnd`. Osobna tabela, żeby listowanie historii nie ciągnęło bloba: `@Basic(fetch = LAZY)` na dużej kolumnie **nie działa** bez bytecode enhancement Hibernate'a.
 - **`team_slots` z czterema kolumnami `move1..move4`, nie osobną tabelą.** Arność stała i mała, kolejność znacząca (protokół WS adresuje ruch indeksem), zero joinów. Normalizacja nie kupiłaby tu nic, a wymusiłaby kolumnę `position` i `ORDER BY` w każdym zapytaniu.
 - **`species_id` to slug z `pokedex.json`, bez klucza obcego.** Dex żyje w jarze silnika, nie w bazie. Slug (`charizard`) zamiast numeru narodowego: `num` nie jest unikalny między formami, a nazwa niesie apostrofy i unicode (`Farfetch'd`, `Nidoran♀`). Integralności pilnuje serwis przy zapisie drużyny.
 

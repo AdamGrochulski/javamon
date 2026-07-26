@@ -4,5 +4,8 @@ javamon:
     secret: test-secret-wystarczajaco-dlugi-zeby-przejsc-walidacje-256-bit
     ttl: PT1H
     guest-ttl: PT10M
+  ws:
+    # Krótko, żeby test timeoutu nie trwał dziesięciu sekund.
+    auth-timeout: PT1S
   cors:
     allowed-origins: http://localhost:5173

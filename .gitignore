@@ -28,3 +28,6 @@ dist/
 
 # Logs
 *.log
+
+# Dokumentacja projektu - nie trafia do repo
+docs/

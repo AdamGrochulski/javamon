@@ -1,5 +1,6 @@
 package dev.adamgrochulski.javamon.app.config;
 
+import dev.adamgrochulski.javamon.engine.damage.TypeChart;
 import dev.adamgrochulski.javamon.engine.model.MoveDex;
 import dev.adamgrochulski.javamon.engine.model.PokemonDex;
 import org.springframework.context.annotation.Bean;
@@ -23,5 +24,10 @@ public class EngineConfig {
     @Bean
     MoveDex moveDex() {
         return new MoveDex();
+    }
+
+    @Bean
+    TypeChart typeChart() {
+        return new TypeChart();
     }
 }

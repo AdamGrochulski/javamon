@@ -386,5 +386,17 @@ public class BattlePokemon {
         return slot.getMove();
     }
 
+    /** Liczba ruchów w movesecie. Serwer sprawdza nią zakres moveIndex. */
+    public int moveCount() {
+        return moves.size();
+    }
+
+    /** Pozostałe PP na slocie. Serwer sprawdza to przed zawołaniem resolvera. */
+    public int ppLeft(int index) {
+        if (index < 0 || index >= moves.size()) {
+            throw new IllegalArgumentException("moveIndex poza zakresem: " + index);
+        }
+        return moves.get(index).getRemainingPp();
+    }
 
 }

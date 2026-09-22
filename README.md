@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring_Boot-3-6DB33F?style=flat-square&logo=springboot&logoColor=white&labelColor=22223B" alt="Spring Boot 3" />
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white&labelColor=22223B" alt="PostgreSQL 16" />
   <img src="https://img.shields.io/badge/Redis-7-FF4438?style=flat-square&logo=redis&logoColor=white&labelColor=22223B" alt="Redis 7" />
-  <img src="https://img.shields.io/badge/React-planned-61DAFB?style=flat-square&logo=react&logoColor=black&labelColor=22223B" alt="React" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black&labelColor=22223B" alt="React" />
   <img src="https://img.shields.io/badge/tests-259-E6482E?style=flat-square&labelColor=22223B" alt="tests" />
 
 </div>
@@ -144,6 +144,15 @@ your own environment.
 curl -X POST localhost:8080/api/auth/guest
 ```
 
+Frontend (needs the backend running):
+
+```bash
+cd web && npm install && npm run dev      # http://localhost:5173
+```
+
+Vite proxies `/api` and `/ws` to `:8080`, so the browser talks to a single
+origin and CORS never enters the picture in development.
+
 ## Layout
 
 ```
@@ -157,6 +166,10 @@ app/      Spring Boot: REST, WebSocket, persistence
   api         Pokédex and team endpoints
   ws          protocol frames, session registry, handler
   persistence JPA entities, repositories, Flyway migrations
+web/      React + TypeScript frontend (Vite)
+  api         REST client, session token, error mapping
+  ws          protocol types and the battle socket
+  pages       screens
 tools/    data generators
 ```
 
@@ -168,7 +181,7 @@ tools/    data generators
 - [x] Battle sessions in Redis, full turn loop over the socket
 - [x] Matchmaking queue, turn timer, reconnect with frame replay
 - [x] Replay storage, battle history and ELO ladder
-- [ ] React + TypeScript frontend: team builder, battle screen, replay viewer
+- [ ] React + TypeScript frontend: team builder, battle screen, replay viewer (started)
 - [ ] Docker Compose deploy behind TLS
 
 ---

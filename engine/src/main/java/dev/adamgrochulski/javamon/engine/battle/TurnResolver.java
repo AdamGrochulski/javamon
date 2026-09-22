@@ -112,6 +112,11 @@ public final class TurnResolver {
         return events;
     }
 
+    /** Poddanie się. Osobne wejście, bo wolno je zgłosić zawsze - także gdy wisi zejście po faincie. */
+    public static List<BattleEvent> resolveForfeit(Battle battle, Player player) {
+        return List.of(new BattleEvent.Forfeit(player), new BattleEvent.BattleEnd(player.opponent()));
+    }
+
     private static List<Player> ordered(Player first) {
         return List.of(first, first.opponent());
     }

@@ -89,6 +89,39 @@ public class BattleSide {
         return expired;
     }
 
+    /** Zmienny stan strony razem ze stanem jej Pokémonów. */
+    public record State(int activeIndex, Map<SideCondition, Integer> conditions,
+                        Map<SideCondition, Integer> durations, List<BattlePokemon.State> team) {
+    }
+
+    public State state() {
+        return new State(activeIndex, Map.copyOf(conditions), Map.copyOf(durations),
+                team.stream().map(BattlePokemon::state).toList());
+    }
+
+    public void restore(State state) {
+        if (state.team().size() != team.size()) {
+            throw new IllegalArgumentException("zapis ma " + state.team().size()
+                    + " Pokémonów, a drużyna " + team.size());
+        }
+        if (state.activeIndex() < 0 || state.activeIndex() >= team.size()) {
+            throw new IllegalArgumentException("activeIndex poza zakresem: " + state.activeIndex());
+        }
+
+        // Wprost na pole, nie przez switchTo: aktywny bywa padnięty, gdy zapis
+        // złapał walkę w chwili oczekiwania na zejście.
+        this.activeIndex = state.activeIndex();
+
+        conditions.clear();
+        conditions.putAll(state.conditions());
+        durations.clear();
+        durations.putAll(state.durations());
+
+        for (int i = 0; i < team.size(); i++) {
+            team.get(i).restore(state.team().get(i));
+        }
+    }
+
     public BattlePokemon active() { return team.get(activeIndex); }
     public boolean isDefeated() {
         return team.stream()

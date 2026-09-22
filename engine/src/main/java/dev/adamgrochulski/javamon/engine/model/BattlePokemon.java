@@ -1,5 +1,6 @@
 package dev.adamgrochulski.javamon.engine.model;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -371,6 +372,69 @@ public class BattlePokemon {
 
         takeDamage(damage);
         return damage;
+    }
+
+    /**
+     * Zmienny stan Pokémona w jednym kawałku - do zapisu walki i odtworzenia jej z zapisu.
+     * Rekord, a nie zestaw setterów: dołożenie pola psuje kompilację wszędzie, gdzie
+     * stan jest budowany, więc nie da się go po cichu zgubić przy zapisie.
+     *
+     * @param chargingMoveIndex indeks ładowanego ruchu w movesecie, -1 gdy nie ładuje
+     */
+    public record State(int currentHp, StatusCondition status, int statusCounter, boolean flinched,
+                        int confusionTurns, int chargingMoveIndex, boolean mustRecharge, int trapTurns,
+                        boolean protectedThisTurn, int protectStreak, boolean leechSeeded,
+                        List<Integer> stages, List<Integer> pp) {
+    }
+
+    public State state() {
+        int chargingIndex = -1;
+        for (int i = 0; i < moves.size(); i++) {
+            if (moves.get(i).getMove() == chargingMove) {
+                chargingIndex = i;
+                break;
+            }
+        }
+        return new State(currentHp, status, statusCounter, flinched, confusionTurns, chargingIndex,
+                mustRecharge, trapTurns, protectedThisTurn, protectStreak, leechSeeded,
+                Arrays.stream(stages).boxed().toList(),
+                moves.stream().map(MoveSlot::getRemainingPp).toList());
+    }
+
+    public void restore(State state) {
+        if (state.stages().size() != stages.length) {
+            throw new IllegalArgumentException("zapis ma " + state.stages().size()
+                    + " stopni statów, a jest ich " + stages.length);
+        }
+        if (state.pp().size() != moves.size()) {
+            throw new IllegalArgumentException("zapis ma " + state.pp().size()
+                    + " slotów PP, a moveset ma " + moves.size());
+        }
+        if (state.currentHp() < 0 || state.currentHp() > derived.maxHp()) {
+            throw new IllegalArgumentException("HP poza zakresem 0.." + derived.maxHp()
+                    + ": " + state.currentHp());
+        }
+
+        this.currentHp = state.currentHp();
+        this.status = state.status();
+        this.statusCounter = state.statusCounter();
+        this.flinched = state.flinched();
+        this.confusionTurns = state.confusionTurns();
+        this.chargingMove = state.chargingMoveIndex() < 0
+                ? null
+                : moves.get(state.chargingMoveIndex()).getMove();
+        this.mustRecharge = state.mustRecharge();
+        this.trapTurns = state.trapTurns();
+        this.protectedThisTurn = state.protectedThisTurn();
+        this.protectStreak = state.protectStreak();
+        this.leechSeeded = state.leechSeeded();
+
+        for (int i = 0; i < stages.length; i++) {
+            stages[i] = state.stages().get(i);
+        }
+        for (int i = 0; i < moves.size(); i++) {
+            moves.get(i).restore(state.pp().get(i));
+        }
     }
 
     public Move moveAt(int index) {

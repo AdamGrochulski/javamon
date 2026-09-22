@@ -18,4 +18,12 @@ public final class MoveSlot {
     public void use() {
         if(hasPp()) remainingPp--;
     }
+
+    /** Odtworzenie PP z zapisu. Pakietowe: z zewnątrz slot pozostaje tylko do użycia. */
+    void restore(int pp) {
+        if (pp < 0 || pp > move.pp()) {
+            throw new IllegalArgumentException("PP poza zakresem 0.." + move.pp() + ": " + pp);
+        }
+        this.remainingPp = pp;
+    }
 }

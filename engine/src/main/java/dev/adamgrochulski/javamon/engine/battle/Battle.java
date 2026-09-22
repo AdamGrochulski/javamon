@@ -90,6 +90,33 @@ public class Battle {
         return false;
     }
 
+    /**
+     * Zmienny stan całej walki. Bez RNG: generator wstrzykuje wołający, więc
+     * to on odpowiada za zapisanie i odtworzenie jego stanu.
+     */
+    public record State(int turn, Weather weather, int weatherTurns,
+                        Terrain terrain, int terrainTurns,
+                        BattleSide.State side1, BattleSide.State side2) {
+    }
+
+    public State state() {
+        return new State(turn, weather, weatherTurns, terrain, terrainTurns,
+                side1.state(), side2.state());
+    }
+
+    public void restore(State state) {
+        if (state.turn() < 1) {
+            throw new IllegalArgumentException("tura musi być >= 1, było: " + state.turn());
+        }
+        this.turn = state.turn();
+        this.weather = state.weather();
+        this.weatherTurns = state.weatherTurns();
+        this.terrain = state.terrain();
+        this.terrainTurns = state.terrainTurns();
+        side1.restore(state.side1());
+        side2.restore(state.side2());
+    }
+
     public Player winner() {
         boolean p1Dead = side1.isDefeated();
         boolean p2Dead = side2.isDefeated();

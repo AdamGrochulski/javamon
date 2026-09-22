@@ -117,6 +117,17 @@ public final class TurnResolver {
         return List.of(new BattleEvent.Forfeit(player), new BattleEvent.BattleEnd(player.opponent()));
     }
 
+    /** Upłynął czas na akcję: milczący przegrywa, a gdy milczą obaj, walka kończy się remisem. */
+    public static List<BattleEvent> resolveTimeout(Battle battle, List<Player> silent) {
+        if (silent.isEmpty()) {
+            throw new IllegalArgumentException("resolveTimeout bez milczącego gracza");
+        }
+        List<BattleEvent> events = new ArrayList<>();
+        silent.forEach(player -> events.add(new BattleEvent.Forfeit(player)));
+        events.add(new BattleEvent.BattleEnd(silent.size() == 1 ? silent.get(0).opponent() : null));
+        return events;
+    }
+
     private static List<Player> ordered(Player first) {
         return List.of(first, first.opponent());
     }

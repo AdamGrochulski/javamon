@@ -58,6 +58,10 @@ public class BattleSessionService {
         return session;
     }
 
+    public Optional<BattleSession> find(UUID battleId) {
+        return Optional.ofNullable(sessions.get(battleId));
+    }
+
     /** Co gracz może teraz zrobić. Liczone dla obu faz: normalnej tury i zejścia po faincie. */
     public LegalActions legalActions(BattleSession session, Player player) {
         Battle battle = session.battle();
@@ -95,6 +99,9 @@ public class BattleSessionService {
         synchronized (session) {
             Battle battle = session.battle();
 
+            if (session.isFinished()) {
+                throw new WsException(WsErrorCode.WRONG_PHASE, "Ta walka jest już zakończona");
+            }
             if (turn != battle.getTurn()) {
                 throw new WsException(WsErrorCode.STALE_ACTION,
                         "Akcja na turę " + turn + ", trwa tura " + battle.getTurn());
@@ -103,12 +110,12 @@ public class BattleSessionService {
             // Poddać się wolno zawsze, także gdy wisi zejście po faincie.
             if (action instanceof ForfeitAction) {
                 session.takePending();
-                return Optional.of(TurnResolver.resolveForfeit(battle, player));
+                return ended(session, TurnResolver.resolveForfeit(battle, player));
             }
 
             List<Player> awaiting = battle.awaitingReplacement();
             if (!awaiting.isEmpty()) {
-                return Optional.of(replace(battle, player, awaiting, action));
+                return ended(session, replace(battle, player, awaiting, action));
             }
 
             if (session.hasSubmitted(player)) {
@@ -123,8 +130,42 @@ public class BattleSessionService {
             }
 
             Map<Player, Action> actions = session.takePending();
-            return Optional.of(TurnResolver.resolve(battle, actions.get(Player.P1), actions.get(Player.P2)));
+            return ended(session, TurnResolver.resolve(battle, actions.get(Player.P1), actions.get(Player.P2)));
         }
+    }
+
+    /**
+     * Upłynął czas na akcję. Pusty Optional oznacza, że timer się spóźnił i nie ma nic do zrobienia:
+     * tura zdążyła się rozliczyć albo obaj gracze zdążyli przysłać akcje.
+     */
+    public Optional<List<BattleEvent>> timeout(UUID battleId, int turn) {
+        BattleSession session = sessions.get(battleId);
+        if (session == null) {
+            return Optional.empty();
+        }
+        synchronized (session) {
+            Battle battle = session.battle();
+            if (session.isFinished() || battle.getTurn() != turn) {
+                return Optional.empty();
+            }
+
+            List<Player> awaiting = battle.awaitingReplacement();
+            List<Player> asked = awaiting.isEmpty() ? List.of(Player.P1, Player.P2) : awaiting;
+            List<Player> silent = asked.stream().filter(player -> !session.hasSubmitted(player)).toList();
+            if (silent.isEmpty()) {
+                return Optional.empty();
+            }
+
+            session.takePending();
+            return ended(session, TurnResolver.resolveTimeout(battle, silent));
+        }
+    }
+
+    private Optional<List<BattleEvent>> ended(BattleSession session, List<BattleEvent> events) {
+        if (events.stream().anyMatch(BattleEvent.BattleEnd.class::isInstance)) {
+            session.finish();
+        }
+        return Optional.of(events);
     }
 
     /** Legalność względem stanu. Guardy silnika to druga linia, rzucają w trakcie mutacji. */

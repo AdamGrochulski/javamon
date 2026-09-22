@@ -98,6 +98,40 @@ class BattleLoopWebSocketTest extends AbstractApiTest {
         }
     }
 
+    @Test
+    void resume_dosyla_ramki_po_zerwaniu() throws Exception {
+        String ashBearer = bearerFor("resume-ash" + COUNTER.incrementAndGet());
+        String garyBearer = bearerFor("resume-gary" + COUNTER.incrementAndGet());
+        BattleSession session;
+
+        try (WsTestClient ash = WsTestClient.connect(port);
+             WsTestClient gary = WsTestClient.connect(port)) {
+
+            UUID ashId = authenticateWith(ash, ashBearer);
+            UUID garyId = authenticateWith(gary, garyBearer);
+
+            session = sessions.create(
+                    new Participant(ashId, "ash", 1000),
+                    team(List.of("charizard", "blastoise", "venusaur", "pikachu", "gengar", "alakazam")),
+                    new Participant(garyId, "gary", 1000),
+                    team(List.of("snorlax", "lapras", "machamp", "golem", "jolteon", "dragonite")));
+            notifier.start(session);
+
+            assertThat(ash.nextFrame().get("seq").asLong()).isEqualTo(1);
+            assertThat(ash.nextFrame().get("seq").asLong()).isEqualTo(2);
+        }
+
+        try (WsTestClient ash = WsTestClient.connect(port)) {
+            authenticateWith(ash, ashBearer);
+            ash.send("RESUME", """
+                    {"battleId":"%s","lastSeq":1}""".formatted(session.id()));
+
+            JsonNode resent = ash.nextFrame();
+            assertThat(resent.get("type").asText()).isEqualTo("REQUEST_ACTION");
+            assertThat(resent.get("seq").asLong()).isEqualTo(2);
+        }
+    }
+
     private BattleSession startBattle(WsTestClient ash, WsTestClient gary) throws Exception {
         UUID ashId = authenticate(ash, "ash" + COUNTER.incrementAndGet());
         UUID garyId = authenticate(gary, "gary" + COUNTER.incrementAndGet());
@@ -113,9 +147,12 @@ class BattleLoopWebSocketTest extends AbstractApiTest {
     }
 
     private UUID authenticate(WsTestClient client, String username) throws Exception {
-        String token = bearerFor(username).substring("Bearer ".length());
+        return authenticateWith(client, bearerFor(username));
+    }
+
+    private UUID authenticateWith(WsTestClient client, String bearer) throws Exception {
         client.send("AUTH", """
-                {"token":"%s"}""".formatted(token));
+                {"token":"%s"}""".formatted(bearer.substring("Bearer ".length())));
 
         JsonNode authOk = client.nextFrame();
         assertThat(authOk.get("type").asText()).isEqualTo("AUTH_OK");

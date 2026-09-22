@@ -8,8 +8,10 @@ import dev.adamgrochulski.javamon.engine.battle.Action;
 import dev.adamgrochulski.javamon.engine.battle.ForfeitAction;
 import dev.adamgrochulski.javamon.engine.battle.MoveAction;
 import dev.adamgrochulski.javamon.engine.battle.SwitchAction;
+import dev.adamgrochulski.javamon.app.battle.Matchmaker;
 
 import java.util.UUID;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
@@ -37,10 +39,12 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
     private final WsProperties properties;
     private final BattleSessionService sessions;
     private final BattleNotifier notifier;
+    private final Matchmaker matchmaker;
 
     BattleWebSocketHandler(WsJson json, WsSessionRegistry registry, JwtService jwtService,
                            TaskScheduler scheduler, WsProperties properties,
-                           BattleSessionService sessions, BattleNotifier notifier) {
+                           BattleSessionService sessions, BattleNotifier notifier,
+                           Matchmaker matchmaker) {
         this.json = json;
         this.registry = registry;
         this.jwtService = jwtService;
@@ -48,6 +52,7 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
         this.properties = properties;
         this.sessions = sessions;
         this.notifier = notifier;
+        this.matchmaker = matchmaker;
     }
 
     @Override
@@ -88,8 +93,11 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
         switch (frame.type()) {
             case "AUTH" -> authenticate(connection, json.payload(frame, WsDtos.AuthRequest.class));
             case "PING" -> connection.send("PONG", null);
-            case "QUEUE_JOIN", "QUEUE_LEAVE" ->
-                    throw new WsException(WsErrorCode.NOT_IMPLEMENTED, "Matchmaking dojdzie później");
+            case "QUEUE_JOIN" -> {
+                WsDtos.QueueJoinRequest request = json.payload(frame, WsDtos.QueueJoinRequest.class);
+                queue(connection, request.teamId());
+            }
+            case "QUEUE_LEAVE" -> matchmaker.leave(connection.trainer().id());
             case "MOVE" -> {
                 WsDtos.MoveRequest request = json.payload(frame, WsDtos.MoveRequest.class);
                 submit(connection, request.battleId(), request.turn(), new MoveAction(request.moveIndex()));
@@ -102,8 +110,10 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
                 WsDtos.ForfeitRequest request = json.payload(frame, WsDtos.ForfeitRequest.class);
                 submit(connection, request.battleId(), null, new ForfeitAction());
             }
-            case "RESUME" ->
-                    throw new WsException(WsErrorCode.NOT_IMPLEMENTED, "Wznowienie dojdzie później");
+            case "RESUME" -> {
+                WsDtos.ResumeRequest request = json.payload(frame, WsDtos.ResumeRequest.class);
+                resume(connection, request.battleId(), request.lastSeq());
+            }
             default ->
                     throw new WsException(WsErrorCode.BAD_FRAME, "Nieznany typ ramki: " + frame.type());
         }
@@ -117,6 +127,18 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
 
         sessions.submit(battleId, trainerId, onTurn, action)
                 .ifPresent(events -> notifier.afterAction(session, onTurn, events));
+    }
+
+    private void resume(WsConnection connection, UUID battleId, long lastSeq) {
+        UUID trainerId = connection.trainer().id();
+        BattleSession session = sessions.require(battleId, trainerId);
+        notifier.resume(session, session.playerOf(trainerId), lastSeq);
+    }
+
+    private void queue(WsConnection connection, UUID teamId) {
+        matchmaker.join(connection.trainer().id(), teamId)
+                .ifPresentOrElse(notifier::start,
+                        () -> connection.send("QUEUED", new WsDtos.Queued(Instant.now())));
     }
 
     private void authenticate(WsConnection connection, WsDtos.AuthRequest request) {
@@ -152,6 +174,9 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         registry.bySessionId(session.getId()).ifPresent(connection -> {
             connection.cancelAuthTimeout();
+            if (connection.isAuthenticated()) {
+                matchmaker.leave(connection.trainer().id());
+            }
             registry.close(connection);
         });
     }

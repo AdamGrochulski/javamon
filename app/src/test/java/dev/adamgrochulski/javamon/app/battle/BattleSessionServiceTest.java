@@ -237,6 +237,40 @@ class BattleSessionServiceTest {
         assertEquals(new BattleEvent.BattleEnd(Player.P2), events.get().get(1));
     }
 
+    @Test
+    void timeout_milczacego_oddaje_walke_przeciwnikowi() {
+        service.submit(session.id(), p1, 1, new MoveAction(0));
+
+        Optional<List<BattleEvent>> events = service.timeout(session.id(), 1);
+
+        assertTrue(events.isPresent());
+        assertEquals(new BattleEvent.Forfeit(Player.P2), events.get().get(0));
+        assertEquals(new BattleEvent.BattleEnd(Player.P1), events.get().get(1));
+    }
+
+    @Test
+    void timeout_obu_milczacych_konczy_remisem() {
+        Optional<List<BattleEvent>> events = service.timeout(session.id(), 1);
+
+        assertTrue(events.isPresent());
+        assertEquals(new BattleEvent.BattleEnd(null), events.get().get(2));
+    }
+
+    @Test
+    void timeout_spozniony_o_ture_nic_nie_robi() {
+        assertTrue(service.timeout(session.id(), 7).isEmpty());
+    }
+
+    @Test
+    void po_zakonczonej_walce_akcje_sa_odrzucane() {
+        service.submit(session.id(), p1, 1, new ForfeitAction());
+
+        WsException ex = assertThrows(WsException.class,
+                () -> service.submit(session.id(), p2, 1, new MoveAction(0)));
+
+        assertEquals(WsErrorCode.WRONG_PHASE, ex.code());
+    }
+
     private void killActive(Player player) {
         BattlePokemon active = session.battle().side(player).active();
         active.takeDamage(active.getMaxHp());

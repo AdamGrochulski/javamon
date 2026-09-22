@@ -42,6 +42,15 @@ public final class WsDtos {
     public record ForfeitRequest(UUID battleId) {
     }
 
+    public record QueueJoinRequest(UUID teamId) {
+    }
+
+    public record ResumeRequest(UUID battleId, long lastSeq) {
+    }
+
+    public record Queued(Instant since) {
+    }
+
     public record BattleStart(UUID battleId, Player you, Opponent opponent,
                               List<TeamMember> yourTeam, OpponentActive opponentActive) {
     }

@@ -80,7 +80,8 @@ public final class WsConnection {
         send("ERROR", new WsDtos.ErrorPayload(code, message));
     }
 
-    private void send(ServerFrame frame) {
+    /** Ramka z gotowym numerem porządkowym - nadaje go BattleFrameLog. */
+    public void send(ServerFrame frame) {
         try {
             session.sendMessage(new TextMessage(json.write(frame)));
         } catch (IOException | IllegalStateException ex) {

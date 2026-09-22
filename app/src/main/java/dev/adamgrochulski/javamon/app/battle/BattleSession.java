@@ -20,7 +20,7 @@ public final class BattleSession {
     private final List<String> p2SpeciesIds;
 
     private final Map<Player, Action> pending = new EnumMap<>(Player.class);
-    private final Map<Player, Long> seq = new EnumMap<>(Player.class);
+    private boolean finished;
 
     public BattleSession(UUID id, Battle battle, Participant p1, Participant p2,
                          List<String> p1SpeciesIds, List<String> p2SpeciesIds) {
@@ -62,10 +62,8 @@ public final class BattleSession {
         return taken;
     }
 
-    /** Numer ramki dla tego gracza. Licznik per odbiorca, bo ramki są filtrowane. */
-    public long nextSeq(Player player) {
-        long next = seq.getOrDefault(player, 0L) + 1;
-        seq.put(player, next);
-        return next;
-    }
+    public boolean isFinished() { return finished; }
+
+    /** Zakończonej walki nie da się już wznowić: kolejne akcje są odrzucane. */
+    public void finish() { this.finished = true; }
 }

@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /** Rozsyłanie ramek walki. Każdy gracz dostaje własną wersję: eventy filtrowane, seq własne. */
 @Component
@@ -21,11 +22,16 @@ public class BattleNotifier {
 
     private final WsSessionRegistry registry;
     private final BattleSessionService sessions;
+    private final BattleFrameLog frames;
+    private final BattleTimers timers;
     private final Duration actionTimeout;
 
-    BattleNotifier(WsSessionRegistry registry, BattleSessionService sessions, BattleProperties properties) {
+    BattleNotifier(WsSessionRegistry registry, BattleSessionService sessions, BattleFrameLog frames,
+                   BattleTimers timers, BattleProperties properties) {
         this.registry = registry;
         this.sessions = sessions;
+        this.frames = frames;
+        this.timers = timers;
         this.actionTimeout = properties.actionTimeout();
     }
 
@@ -37,6 +43,7 @@ public class BattleNotifier {
     }
 
     public void afterAction(BattleSession session, int turn, List<BattleEvent> events) {
+        timers.cancel(session.id());
         for (Player player : Player.values()) {
             send(session, player, "TURN_EVENTS", new WsDtos.TurnEvents(
                     session.id(), turn, BattleEventFilter.forPlayer(session.battle(), player, events)));
@@ -53,6 +60,28 @@ public class BattleNotifier {
             send(session, player, "BATTLE_END",
                     new WsDtos.BattleEndPayload(session.id(), end.winner(), reason, null, null));
         }
+        frames.forget(session.id());
+    }
+
+    /**
+     * Dosyłka po zerwanym połączeniu. Gdy bufor nie sięga tak daleko, idzie pełny stan
+     * i ostatnie pytanie o akcję - z oryginalnym deadlinem, bo zegar tury nie stoi.
+     */
+    public void resume(BattleSession session, Player player, long lastSeq) {
+        WsConnection connection = registry.find(session.participant(player).trainerId()).orElse(null);
+        if (connection == null) {
+            return;
+        }
+
+        Optional<List<ServerFrame>> missed = frames.since(session.id(), player, lastSeq);
+        if (missed.isPresent()) {
+            missed.get().forEach(connection::send);
+            return;
+        }
+
+        connection.send(frames.record(session.id(), player, "BATTLE_START", battleStart(session, player)));
+        frames.last(session.id(), player, "REQUEST_ACTION").ifPresent(frame ->
+                connection.send(frames.record(session.id(), player, "REQUEST_ACTION", frame.payload())));
     }
 
     private void requestNext(BattleSession session) {
@@ -61,20 +90,26 @@ public class BattleNotifier {
         boolean replacement = !awaiting.isEmpty();
         List<Player> asked = replacement ? awaiting : List.of(Player.P1, Player.P2);
 
-        // Deadline jest informacyjny: timer i akcja wybierana przez serwer to osobny plaster.
+        int turn = battle.getTurn();
         Instant deadline = Instant.now().plus(actionTimeout);
         for (Player player : asked) {
             send(session, player, "REQUEST_ACTION", new WsDtos.RequestAction(
-                    session.id(), battle.getTurn(), replacement ? "REPLACEMENT" : "TURN",
+                    session.id(), turn, replacement ? "REPLACEMENT" : "TURN",
                     deadline, sessions.legalActions(session, player)));
         }
+        timers.arm(session.id(), deadline, () -> expire(session, turn));
     }
 
-    // seq rośnie też dla rozłączonego: po RESUME ma być widać, że coś go ominęło.
+    // Timer bywa spóźniony o ułamek sekundy - serwis sam odrzuci rozliczenie, które się już odbyło.
+    private void expire(BattleSession session, int turn) {
+        sessions.timeout(session.id(), turn).ifPresent(events -> afterAction(session, turn, events));
+    }
+
+    // Ramka trafia do logu także dla rozłączonego: po RESUME ma być co dosłać.
     private void send(BattleSession session, Player player, String type, Object payload) {
-        long seq = session.nextSeq(player);
+        ServerFrame frame = frames.record(session.id(), player, type, payload);
         registry.find(session.participant(player).trainerId())
-                .ifPresent(connection -> connection.send(type, seq, payload));
+                .ifPresent(connection -> connection.send(frame));
     }
 
     private static BattleEvent.BattleEnd endOf(List<BattleEvent> events) {

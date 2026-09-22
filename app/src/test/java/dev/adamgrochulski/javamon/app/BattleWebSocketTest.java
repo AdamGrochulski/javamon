@@ -141,18 +141,6 @@ class BattleWebSocketTest extends AbstractApiTest {
     }
 
     @Test
-    void znanaAleNiegotowaRamkaDajeNotImplemented() throws Exception {
-        try (WsTestClient client = WsTestClient.connect(port)) {
-            client.send("AUTH", authPayload(tokenFor("ws-niecierpliwy")));
-            client.nextFrame();
-
-            client.send("QUEUE_JOIN", null);
-            assertThat(client.nextFrame().get("payload").get("code").asText())
-                    .isEqualTo("not_implemented");
-        }
-    }
-
-    @Test
     void ruchWCudzejWalceDajeNotInBattle() throws Exception {
         try (WsTestClient client = WsTestClient.connect(port)) {
             client.send("AUTH", authPayload(tokenFor("ws-intruz")));

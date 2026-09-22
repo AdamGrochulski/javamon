@@ -2,10 +2,7 @@ package dev.adamgrochulski.javamon.app;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import dev.adamgrochulski.javamon.engine.model.PokemonDex;
-import dev.adamgrochulski.javamon.engine.model.Species;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 
 import java.util.List;
@@ -19,50 +16,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class TeamApiTest extends AbstractApiTest {
-
-    private static final List<String> ROSTER =
-            List.of("charizard", "blastoise", "venusaur", "snorlax", "gengar", "alakazam");
-
-    @Autowired
-    PokemonDex pokemonDex;
-
     /**
      * Ruchy bierzemy z learnsetu, zamiast wpisywać na sztywno — inaczej
      * regeneracja pokedexu potrafiłaby wywalić testy z powodu niezwiązanego
      * ze zmianą w kodzie.
      */
-    private List<String> legalMoves(String speciesId, int howMany) {
-        Species species = pokemonDex.get(speciesId);
-        return species.learnset().stream().sorted().limit(howMany).toList();
-    }
-
-    private ObjectNode slot(String speciesId, int level, List<String> moves) {
-        ObjectNode slot = objectMapper.createObjectNode();
-        slot.put("speciesId", speciesId);
-        slot.put("level", level);
-        ArrayNode array = slot.putArray("moves");
-        moves.forEach(array::add);
-        return slot;
-    }
-
-    private ObjectNode validTeam(String name) {
-        ObjectNode team = objectMapper.createObjectNode();
-        team.put("name", name);
-        ArrayNode slots = team.putArray("slots");
-        ROSTER.forEach(id -> slots.add(slot(id, 50, legalMoves(id, 4))));
-        return team;
-    }
-
-    private String createTeam(String bearer, String name) throws Exception {
-        String body = mockMvc.perform(post("/api/teams")
-                        .header("Authorization", bearer)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(validTeam(name).toString()))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-
-        return objectMapper.readTree(body).get("id").asText();
-    }
 
     @Test
     void tworzyDruzyneZSzesciomaSlotami() throws Exception {

@@ -42,7 +42,11 @@ public class BattleNotifier {
         requestNext(session);
     }
 
-    public void afterAction(BattleSession session, int turn, List<BattleEvent> events) {
+    public void afterAction(TurnOutcome outcome) {
+        BattleSession session = outcome.session();
+        int turn = outcome.turn();
+        List<BattleEvent> events = outcome.events();
+
         timers.cancel(session.id());
         for (Player player : Player.values()) {
             send(session, player, "TURN_EVENTS", new WsDtos.TurnEvents(
@@ -102,7 +106,7 @@ public class BattleNotifier {
 
     // Timer bywa spóźniony o ułamek sekundy - serwis sam odrzuci rozliczenie, które się już odbyło.
     private void expire(BattleSession session, int turn) {
-        sessions.timeout(session.id(), turn).ifPresent(events -> afterAction(session, turn, events));
+        sessions.timeout(session.id(), turn).ifPresent(this::afterAction);
     }
 
     // Ramka trafia do logu także dla rozłączonego: po RESUME ma być co dosłać.

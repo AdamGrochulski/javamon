@@ -26,7 +26,8 @@ class BattleSessionServiceTest {
     private static final MoveDex MOVES = new MoveDex();
     private static final TypeChart CHART = new TypeChart();
 
-    private final BattleSessionService service = new BattleSessionService(POKEDEX, MOVES, CHART);
+    private final InMemoryBattleStore store = new InMemoryBattleStore();
+    private final BattleSessionService service = new BattleSessionService(store, POKEDEX, MOVES, CHART);
 
     private final UUID p1 = UUID.randomUUID();
     private final UUID p2 = UUID.randomUUID();
@@ -86,10 +87,12 @@ class BattleSessionServiceTest {
 
     @Test
     void ruch_bez_pp_odrzucony() {
-        BattlePokemon active = session.battle().side(Player.P1).active();
-        while (active.ppLeft(0) > 0) {
-            active.useMove(0);
-        }
+        mutate(loaded -> {
+            BattlePokemon active = loaded.battle().side(Player.P1).active();
+            while (active.ppLeft(0) > 0) {
+                active.useMove(0);
+            }
+        });
 
         WsException ex = assertThrows(WsException.class,
                 () -> service.submit(session.id(), p1, 1, new MoveAction(0)));
@@ -107,8 +110,10 @@ class BattleSessionServiceTest {
 
     @Test
     void switch_na_padnietego_odrzucony() {
-        BattlePokemon bench = session.battle().side(Player.P1).getTeam().get(1);
-        bench.takeDamage(bench.getMaxHp());
+        mutate(loaded -> {
+            BattlePokemon bench = loaded.battle().side(Player.P1).getTeam().get(1);
+            bench.takeDamage(bench.getMaxHp());
+        });
 
         WsException ex = assertThrows(WsException.class,
                 () -> service.submit(session.id(), p1, 1, new SwitchAction(1)));
@@ -128,11 +133,11 @@ class BattleSessionServiceTest {
     void tura_rozlicza_sie_dopiero_po_obu_akcjach() {
         assertTrue(service.submit(session.id(), p1, 1, new MoveAction(0)).isEmpty());
 
-        Optional<List<BattleEvent>> events = service.submit(session.id(), p2, 1, new MoveAction(0));
+        Optional<TurnOutcome> outcome = service.submit(session.id(), p2, 1, new MoveAction(0));
 
-        assertTrue(events.isPresent());
-        assertFalse(events.get().isEmpty());
-        assertEquals(2, session.battle().getTurn());
+        assertTrue(outcome.isPresent());
+        assertFalse(outcome.get().events().isEmpty());
+        assertEquals(2, current().battle().getTurn());
     }
 
     @Test
@@ -167,18 +172,20 @@ class BattleSessionServiceTest {
     void zejscie_po_faincie_zmienia_aktywnego() {
         killActive(Player.P1);
 
-        Optional<List<BattleEvent>> events = service.submit(session.id(), p1, 1, new SwitchAction(1));
+        Optional<TurnOutcome> outcome = service.submit(session.id(), p1, 1, new SwitchAction(1));
 
-        assertTrue(events.isPresent());
-        assertEquals(1, session.battle().side(Player.P1).getActiveIndex());
-        assertTrue(session.battle().awaitingReplacement().isEmpty());
+        assertTrue(outcome.isPresent());
+        assertEquals(1, current().battle().side(Player.P1).getActiveIndex());
+        assertTrue(current().battle().awaitingReplacement().isEmpty());
     }
 
     @Test
     void zejscie_na_padnietego_odrzucone_takze_po_faincie() {
         killActive(Player.P1);
-        BattlePokemon bench = session.battle().side(Player.P1).getTeam().get(1);
-        bench.takeDamage(bench.getMaxHp());
+        mutate(loaded -> {
+            BattlePokemon bench = loaded.battle().side(Player.P1).getTeam().get(1);
+            bench.takeDamage(bench.getMaxHp());
+        });
 
         WsException ex = assertThrows(WsException.class,
                 () -> service.submit(session.id(), p1, 1, new SwitchAction(1)));
@@ -188,12 +195,14 @@ class BattleSessionServiceTest {
 
     @Test
     void legal_oznacza_ruch_bez_pp_jako_niedostepny() {
-        BattlePokemon active = session.battle().side(Player.P1).active();
-        while (active.ppLeft(0) > 0) {
-            active.useMove(0);
-        }
+        mutate(loaded -> {
+            BattlePokemon active = loaded.battle().side(Player.P1).active();
+            while (active.ppLeft(0) > 0) {
+                active.useMove(0);
+            }
+        });
 
-        LegalActions.LegalMove move = service.legalActions(session, Player.P1).moves().get(0);
+        LegalActions.LegalMove move = service.legalActions(current(), Player.P1).moves().get(0);
 
         assertFalse(move.usable());
         assertEquals("Brak PP", move.reason());
@@ -203,7 +212,7 @@ class BattleSessionServiceTest {
     void legal_po_faincie_to_same_zejscia() {
         killActive(Player.P1);
 
-        LegalActions legal = service.legalActions(session, Player.P1);
+        LegalActions legal = service.legalActions(current(), Player.P1);
 
         assertTrue(legal.moves().isEmpty());
         assertEquals(List.of(1, 2, 3, 4, 5), legal.switches());
@@ -211,9 +220,9 @@ class BattleSessionServiceTest {
 
     @Test
     void uwieziony_nie_ma_zejsc() {
-        session.battle().side(Player.P1).active().trap(3);
+        mutate(loaded -> loaded.battle().side(Player.P1).active().trap(3));
 
-        LegalActions legal = service.legalActions(session, Player.P1);
+        LegalActions legal = service.legalActions(current(), Player.P1);
 
         assertTrue(legal.switches().isEmpty());
         assertFalse(legal.moves().isEmpty());
@@ -221,39 +230,39 @@ class BattleSessionServiceTest {
 
     @Test
     void poddanie_konczy_walke() {
-        Optional<List<BattleEvent>> events = service.submit(session.id(), p1, 1, new ForfeitAction());
+        Optional<TurnOutcome> outcome = service.submit(session.id(), p1, 1, new ForfeitAction());
 
-        assertTrue(events.isPresent());
-        assertEquals(new BattleEvent.BattleEnd(Player.P2), events.get().get(1));
+        assertTrue(outcome.isPresent());
+        assertEquals(new BattleEvent.BattleEnd(Player.P2), outcome.get().events().get(1));
     }
 
     @Test
     void poddac_sie_mozna_takze_po_faincie() {
         killActive(Player.P1);
 
-        Optional<List<BattleEvent>> events = service.submit(session.id(), p1, 1, new ForfeitAction());
+        Optional<TurnOutcome> outcome = service.submit(session.id(), p1, 1, new ForfeitAction());
 
-        assertTrue(events.isPresent());
-        assertEquals(new BattleEvent.BattleEnd(Player.P2), events.get().get(1));
+        assertTrue(outcome.isPresent());
+        assertEquals(new BattleEvent.BattleEnd(Player.P2), outcome.get().events().get(1));
     }
 
     @Test
     void timeout_milczacego_oddaje_walke_przeciwnikowi() {
         service.submit(session.id(), p1, 1, new MoveAction(0));
 
-        Optional<List<BattleEvent>> events = service.timeout(session.id(), 1);
+        Optional<TurnOutcome> outcome = service.timeout(session.id(), 1);
 
-        assertTrue(events.isPresent());
-        assertEquals(new BattleEvent.Forfeit(Player.P2), events.get().get(0));
-        assertEquals(new BattleEvent.BattleEnd(Player.P1), events.get().get(1));
+        assertTrue(outcome.isPresent());
+        assertEquals(new BattleEvent.Forfeit(Player.P2), outcome.get().events().get(0));
+        assertEquals(new BattleEvent.BattleEnd(Player.P1), outcome.get().events().get(1));
     }
 
     @Test
     void timeout_obu_milczacych_konczy_remisem() {
-        Optional<List<BattleEvent>> events = service.timeout(session.id(), 1);
+        Optional<TurnOutcome> outcome = service.timeout(session.id(), 1);
 
-        assertTrue(events.isPresent());
-        assertEquals(new BattleEvent.BattleEnd(null), events.get().get(2));
+        assertTrue(outcome.isPresent());
+        assertEquals(new BattleEvent.BattleEnd(null), outcome.get().events().get(2));
     }
 
     @Test
@@ -271,9 +280,22 @@ class BattleSessionServiceTest {
         assertEquals(WsErrorCode.WRONG_PHASE, ex.code());
     }
 
+    /** Sesja nie jest źródłem prawdy, więc zmiana stanu musi przejść przez magazyn. */
+    private void mutate(java.util.function.Consumer<BattleSession> change) {
+        BattleSession loaded = service.require(session.id(), p1);
+        change.accept(loaded);
+        store.save(loaded.toSnapshot());
+    }
+
+    private BattleSession current() {
+        return service.require(session.id(), p1);
+    }
+
     private void killActive(Player player) {
-        BattlePokemon active = session.battle().side(player).active();
-        active.takeDamage(active.getMaxHp());
+        mutate(loaded -> {
+            BattlePokemon active = loaded.battle().side(player).active();
+            active.takeDamage(active.getMaxHp());
+        });
     }
 
     private Team team(List<String> speciesIds) {

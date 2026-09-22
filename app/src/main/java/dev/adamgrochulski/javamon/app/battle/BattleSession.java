@@ -3,33 +3,39 @@ package dev.adamgrochulski.javamon.app.battle;
 import dev.adamgrochulski.javamon.engine.battle.Action;
 import dev.adamgrochulski.javamon.engine.battle.Battle;
 import dev.adamgrochulski.javamon.engine.battle.Player;
+import dev.adamgrochulski.javamon.engine.rng.XorShiftRng;
 
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Jedna walka w toku: stan silnika, przypisanie trenerów do stron, akcje na bieżącą turę. */
+/**
+ * Walka wczytana do pamięci na czas jednej operacji. Nie jest źródłem prawdy:
+ * po zmianie stanu idzie z powrotem do magazynu jako BattleSnapshot.
+ */
 public final class BattleSession {
 
     private final UUID id;
     private final Battle battle;
+    private final XorShiftRng rng;
     private final Participant p1;
     private final Participant p2;
-    private final List<String> p1SpeciesIds;
-    private final List<String> p2SpeciesIds;
+    private final List<MonSnapshot> p1Team;
+    private final List<MonSnapshot> p2Team;
 
     private final Map<Player, Action> pending = new EnumMap<>(Player.class);
     private boolean finished;
 
-    public BattleSession(UUID id, Battle battle, Participant p1, Participant p2,
-                         List<String> p1SpeciesIds, List<String> p2SpeciesIds) {
+    public BattleSession(UUID id, Battle battle, XorShiftRng rng, Participant p1, Participant p2,
+                         List<MonSnapshot> p1Team, List<MonSnapshot> p2Team) {
         this.id = id;
         this.battle = battle;
+        this.rng = rng;
         this.p1 = p1;
         this.p2 = p2;
-        this.p1SpeciesIds = p1SpeciesIds;
-        this.p2SpeciesIds = p2SpeciesIds;
+        this.p1Team = p1Team;
+        this.p2Team = p2Team;
     }
 
     public UUID id() { return id; }
@@ -48,7 +54,7 @@ public final class BattleSession {
 
     /** Slug z pokedex.json. BattlePokemon zna tylko nazwę, a front potrzebuje id pod sprite'y. */
     public String speciesId(Player player, int teamIndex) {
-        return (player == Player.P1 ? p1SpeciesIds : p2SpeciesIds).get(teamIndex);
+        return roster(player).get(teamIndex).speciesId();
     }
 
     public boolean hasSubmitted(Player player) { return pending.containsKey(player); }
@@ -66,4 +72,22 @@ public final class BattleSession {
 
     /** Zakończonej walki nie da się już wznowić: kolejne akcje są odrzucane. */
     public void finish() { this.finished = true; }
+
+    public BattleSnapshot toSnapshot() {
+        Map<Player, ActionSnapshot> saved = new EnumMap<>(Player.class);
+        pending.forEach((player, action) -> saved.put(player, ActionSnapshot.of(action)));
+
+        return new BattleSnapshot(id, p1, p2, p1Team, p2Team,
+                rng.state(), battle.state(), saved, finished);
+    }
+
+    /** Wołane wyłącznie przy odtwarzaniu z zapisu, zanim sesja wyjdzie z serwisu. */
+    void restorePending(Map<Player, ActionSnapshot> saved, boolean wasFinished) {
+        saved.forEach((player, action) -> pending.put(player, action.toAction()));
+        this.finished = wasFinished;
+    }
+
+    private List<MonSnapshot> roster(Player player) {
+        return player == Player.P1 ? p1Team : p2Team;
+    }
 }

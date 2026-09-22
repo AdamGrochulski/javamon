@@ -108,7 +108,8 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
             }
             case "FORFEIT" -> {
                 WsDtos.ForfeitRequest request = json.payload(frame, WsDtos.ForfeitRequest.class);
-                submit(connection, request.battleId(), null, new ForfeitAction());
+                sessions.forfeit(request.battleId(), connection.trainer().id())
+                        .ifPresent(notifier::afterAction);
             }
             case "RESUME" -> {
                 WsDtos.ResumeRequest request = json.payload(frame, WsDtos.ResumeRequest.class);
@@ -119,14 +120,9 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void submit(WsConnection connection, UUID battleId, Integer turn, Action action) {
-        UUID trainerId = connection.trainer().id();
-        BattleSession session = sessions.require(battleId, trainerId);
-        // FORFEIT nie niesie numeru tury: poddać się można w każdej fazie.
-        int onTurn = turn != null ? turn : session.battle().getTurn();
-
-        sessions.submit(battleId, trainerId, onTurn, action)
-                .ifPresent(events -> notifier.afterAction(session, onTurn, events));
+    private void submit(WsConnection connection, UUID battleId, int turn, Action action) {
+        sessions.submit(battleId, connection.trainer().id(), turn, action)
+                .ifPresent(notifier::afterAction);
     }
 
     private void resume(WsConnection connection, UUID battleId, long lastSeq) {

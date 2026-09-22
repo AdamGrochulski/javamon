@@ -31,3 +31,6 @@ dist/
 
 # Project docs
 docs/
+
+# TS build info
+*.tsbuildinfo

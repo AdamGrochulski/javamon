@@ -98,4 +98,24 @@ class AuthApiTest extends AbstractApiTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("not_found"));
     }
+    @Test
+    void wylogowanieUniewaznieTokenNatychmiast() throws Exception {
+        String bearer = bearerFor("wylogowany");
+
+        mockMvc.perform(get("/api/teams").header("Authorization", bearer))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/logout").header("Authorization", bearer))
+                .andExpect(status().isNoContent());
+
+        // Token jest dalej poprawnie podpisany i niewygasły, a mimo to nie działa.
+        mockMvc.perform(get("/api/teams").header("Authorization", bearer))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void wylogowanieBezTokenaPrzechodziCicho() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isNoContent());
+    }
 }

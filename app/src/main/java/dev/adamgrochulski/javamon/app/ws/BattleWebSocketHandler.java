@@ -97,7 +97,10 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
                 WsDtos.QueueJoinRequest request = json.payload(frame, WsDtos.QueueJoinRequest.class);
                 queue(connection, request.teamId());
             }
-            case "QUEUE_LEAVE" -> matchmaker.leave(connection.trainer().id());
+            case "QUEUE_LEAVE" -> {
+                matchmaker.leave(connection.trainer().id());
+                connection.send("QUEUE_LEFT", null);
+            }
             case "MOVE" -> {
                 WsDtos.MoveRequest request = json.payload(frame, WsDtos.MoveRequest.class);
                 submit(connection, request.battleId(), request.turn(), new MoveAction(request.moveIndex()));

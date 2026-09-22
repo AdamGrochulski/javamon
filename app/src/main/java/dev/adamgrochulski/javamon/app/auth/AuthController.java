@@ -5,8 +5,11 @@ import dev.adamgrochulski.javamon.app.auth.AuthDtos.LoginRequest;
 import dev.adamgrochulski.javamon.app.auth.AuthDtos.RegisterRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,9 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
-    AuthController(AuthService authService) {
+    AuthController(AuthService authService, JwtService jwtService) {
         this.authService = authService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/register")
@@ -38,6 +43,18 @@ public class AuthController {
     @PostMapping("/guest")
     public AuthResponse guest(HttpServletRequest http) {
         return authService.guest(ipOf(http));
+    }
+
+    /**
+     * Unieważnia okazany token. Bez ciała odpowiedzi: klient i tak ma go wyrzucić,
+     * a 204 nie zdradza, czy token w ogóle był ważny.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String header) {
+        if (header != null && header.startsWith("Bearer ")) {
+            jwtService.revoke(header.substring("Bearer ".length()));
+        }
+        return ResponseEntity.noContent().build();
     }
 
     /**

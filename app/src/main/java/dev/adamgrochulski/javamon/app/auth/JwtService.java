@@ -27,8 +27,10 @@ public class JwtService {
     private final SecretKey key;
     private final Duration ttl;
     private final Duration guestTtl;
+    private final TokenDenylist denylist;
 
-    JwtService(JwtProperties properties) {
+    JwtService(JwtProperties properties, TokenDenylist denylist) {
+        this.denylist = denylist;
         if (properties.secret() == null || properties.secret().isBlank()) {
             throw new IllegalStateException(
                     "Brak JWT_SECRET. Ustaw zmienną środowiskową — bez klucza "
@@ -49,6 +51,7 @@ public class JwtService {
         Instant now = Instant.now();
         Duration lifetime = trainer.isGuest() ? guestTtl : ttl;
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(trainer.getId().toString())
                 .claim("name", trainer.getUsername())
                 .claim("guest", trainer.isGuest())
@@ -56,6 +59,20 @@ public class JwtService {
                 .expiration(Date.from(now.plus(lifetime)))
                 .signWith(key)
                 .compact();
+    }
+
+    /** Unieważnia okazany token. Cicho przechodzi, gdy token i tak jest nieważny. */
+    public void revoke(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            denylist.revoke(claims.getId(), claims.getExpiration().toInstant());
+        } catch (JwtException | IllegalArgumentException ex) {
+            // Wylogowanie nieważnym tokenem to nie błąd: efekt jest ten sam.
+        }
     }
 
     /**
@@ -70,6 +87,10 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+
+            if (denylist.isRevoked(claims.getId())) {
+                return Optional.empty();
+            }
 
             return Optional.of(new AuthenticatedTrainer(
                     UUID.fromString(claims.getSubject()),

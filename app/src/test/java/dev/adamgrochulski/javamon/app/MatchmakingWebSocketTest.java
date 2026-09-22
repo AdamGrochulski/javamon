@@ -78,6 +78,22 @@ class MatchmakingWebSocketTest extends AbstractApiTest {
         }
     }
 
+    @Test
+    void wyjscie_z_kolejki_jest_potwierdzane() throws Exception {
+        String bearer = bearerFor("mm-rezygnujacy");
+        String teamId = createTeam(bearer, "Rezygnacja");
+
+        try (WsTestClient client = WsTestClient.connect(port)) {
+            authenticate(client, bearer);
+            joinQueue(client, teamId);
+            assertThat(client.nextFrame().get("type").asText()).isEqualTo("QUEUED");
+
+            client.send("QUEUE_LEAVE", null);
+
+            assertThat(client.nextFrame().get("type").asText()).isEqualTo("QUEUE_LEFT");
+        }
+    }
+
     private void authenticate(WsTestClient client, String bearer) throws Exception {
         client.send("AUTH", """
                 {"token":"%s"}""".formatted(bearer.substring("Bearer ".length())));

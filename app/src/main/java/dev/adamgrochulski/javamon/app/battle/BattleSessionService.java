@@ -36,14 +36,15 @@ public class BattleSessionService {
     }
 
     /** Skład kopiowany do sesji: usunięcie drużyny w trakcie nie przerywa walki. */
-    public BattleSession create(UUID p1TrainerId, Team p1Team, UUID p2TrainerId, Team p2Team) {
+    public BattleSession create(Participant p1, Team p1Team, Participant p2, Team p2Team) {
         BattleSide side1 = new BattleSide(toBattleTeam(p1Team));
         BattleSide side2 = new BattleSide(toBattleTeam(p2Team));
 
         // SecureRandom, nie nanoTime: czas startu walki jest odgadywalny.
         Battle battle = new Battle(side1, side2, new XorShiftRng(seedSource.nextLong()), typeChart);
 
-        BattleSession session = new BattleSession(UUID.randomUUID(), battle, p1TrainerId, p2TrainerId);
+        BattleSession session = new BattleSession(UUID.randomUUID(), battle, p1, p2,
+                speciesIdsOf(p1Team), speciesIdsOf(p2Team));
         sessions.put(session.id(), session);
         return session;
     }
@@ -55,6 +56,34 @@ public class BattleSessionService {
             throw new WsException(WsErrorCode.NOT_IN_BATTLE, "Nie jesteś uczestnikiem tej walki");
         }
         return session;
+    }
+
+    /** Co gracz może teraz zrobić. Liczone dla obu faz: normalnej tury i zejścia po faincie. */
+    public LegalActions legalActions(BattleSession session, Player player) {
+        Battle battle = session.battle();
+        BattleSide side = battle.side(player);
+
+        List<Integer> switches = new ArrayList<>();
+        for (int i = 0; i < side.getTeam().size(); i++) {
+            if (i != side.getActiveIndex() && !side.getTeam().get(i).isFainted()) {
+                switches.add(i);
+            }
+        }
+
+        if (battle.needsReplacement(player)) {
+            return new LegalActions(List.of(), switches);
+        }
+
+        BattlePokemon active = side.active();
+        List<LegalActions.LegalMove> moves = new ArrayList<>();
+        for (int i = 0; i < active.moveCount(); i++) {
+            int pp = active.ppLeft(i);
+            moves.add(new LegalActions.LegalMove(
+                    i, active.moveAt(i).name(), pp, pp > 0, pp > 0 ? null : "Brak PP"));
+        }
+
+        // Uwięziony nie zejdzie. Po faincie trap nie obowiązuje, ale tamta gałąź wyszła wyżej.
+        return new LegalActions(moves, active.isTrapped() ? List.of() : switches);
     }
 
     /** Eventy tury, gdy przyszły obie akcje; pusty Optional, gdy czekamy na przeciwnika. */
@@ -69,6 +98,12 @@ public class BattleSessionService {
             if (turn != battle.getTurn()) {
                 throw new WsException(WsErrorCode.STALE_ACTION,
                         "Akcja na turę " + turn + ", trwa tura " + battle.getTurn());
+            }
+
+            // Poddać się wolno zawsze, także gdy wisi zejście po faincie.
+            if (action instanceof ForfeitAction) {
+                session.takePending();
+                return Optional.of(TurnResolver.resolveForfeit(battle, player));
             }
 
             List<Player> awaiting = battle.awaitingReplacement();
@@ -158,6 +193,13 @@ public class BattleSessionService {
         return team.getSlots().stream()
                 .sorted(Comparator.comparingInt(TeamSlot::getSlotIndex))
                 .map(this::toBattlePokemon)
+                .toList();
+    }
+
+    private List<String> speciesIdsOf(Team team) {
+        return team.getSlots().stream()
+                .sorted(Comparator.comparingInt(TeamSlot::getSlotIndex))
+                .map(TeamSlot::getSpeciesId)
                 .toList();
     }
 

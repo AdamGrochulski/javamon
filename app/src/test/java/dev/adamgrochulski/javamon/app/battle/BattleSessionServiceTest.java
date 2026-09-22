@@ -36,8 +36,10 @@ class BattleSessionServiceTest {
     @BeforeEach
     void setUp() {
         session = service.create(
-                p1, team(List.of("charizard", "blastoise", "venusaur", "pikachu", "gengar", "alakazam")),
-                p2, team(List.of("snorlax", "lapras", "machamp", "golem", "jolteon", "dragonite")));
+                new Participant(p1, "ash", 1000),
+                team(List.of("charizard", "blastoise", "venusaur", "pikachu", "gengar", "alakazam")),
+                new Participant(p2, "gary", 1042),
+                team(List.of("snorlax", "lapras", "machamp", "golem", "jolteon", "dragonite")));
     }
 
     @Test
@@ -182,6 +184,57 @@ class BattleSessionServiceTest {
                 () -> service.submit(session.id(), p1, 1, new SwitchAction(1)));
 
         assertEquals(WsErrorCode.ILLEGAL_ACTION, ex.code());
+    }
+
+    @Test
+    void legal_oznacza_ruch_bez_pp_jako_niedostepny() {
+        BattlePokemon active = session.battle().side(Player.P1).active();
+        while (active.ppLeft(0) > 0) {
+            active.useMove(0);
+        }
+
+        LegalActions.LegalMove move = service.legalActions(session, Player.P1).moves().get(0);
+
+        assertFalse(move.usable());
+        assertEquals("Brak PP", move.reason());
+    }
+
+    @Test
+    void legal_po_faincie_to_same_zejscia() {
+        killActive(Player.P1);
+
+        LegalActions legal = service.legalActions(session, Player.P1);
+
+        assertTrue(legal.moves().isEmpty());
+        assertEquals(List.of(1, 2, 3, 4, 5), legal.switches());
+    }
+
+    @Test
+    void uwieziony_nie_ma_zejsc() {
+        session.battle().side(Player.P1).active().trap(3);
+
+        LegalActions legal = service.legalActions(session, Player.P1);
+
+        assertTrue(legal.switches().isEmpty());
+        assertFalse(legal.moves().isEmpty());
+    }
+
+    @Test
+    void poddanie_konczy_walke() {
+        Optional<List<BattleEvent>> events = service.submit(session.id(), p1, 1, new ForfeitAction());
+
+        assertTrue(events.isPresent());
+        assertEquals(new BattleEvent.BattleEnd(Player.P2), events.get().get(1));
+    }
+
+    @Test
+    void poddac_sie_mozna_takze_po_faincie() {
+        killActive(Player.P1);
+
+        Optional<List<BattleEvent>> events = service.submit(session.id(), p1, 1, new ForfeitAction());
+
+        assertTrue(events.isPresent());
+        assertEquals(new BattleEvent.BattleEnd(Player.P2), events.get().get(1));
     }
 
     private void killActive(Player player) {

@@ -2,6 +2,14 @@ package dev.adamgrochulski.javamon.app.ws;
 
 import dev.adamgrochulski.javamon.app.auth.AuthenticatedTrainer;
 import dev.adamgrochulski.javamon.app.auth.JwtService;
+import dev.adamgrochulski.javamon.app.battle.BattleSession;
+import dev.adamgrochulski.javamon.app.battle.BattleSessionService;
+import dev.adamgrochulski.javamon.engine.battle.Action;
+import dev.adamgrochulski.javamon.engine.battle.ForfeitAction;
+import dev.adamgrochulski.javamon.engine.battle.MoveAction;
+import dev.adamgrochulski.javamon.engine.battle.SwitchAction;
+
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
@@ -27,14 +35,19 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
     private final JwtService jwtService;
     private final TaskScheduler scheduler;
     private final WsProperties properties;
+    private final BattleSessionService sessions;
+    private final BattleNotifier notifier;
 
     BattleWebSocketHandler(WsJson json, WsSessionRegistry registry, JwtService jwtService,
-                           TaskScheduler scheduler, WsProperties properties) {
+                           TaskScheduler scheduler, WsProperties properties,
+                           BattleSessionService sessions, BattleNotifier notifier) {
         this.json = json;
         this.registry = registry;
         this.jwtService = jwtService;
         this.scheduler = scheduler;
         this.properties = properties;
+        this.sessions = sessions;
+        this.notifier = notifier;
     }
 
     @Override
@@ -56,6 +69,9 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
             dispatch(connection, json.read(message.getPayload()));
         } catch (WsException ex) {
             connection.sendError(ex.code(), ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            // Rekordy akcji odsiewają bzdury same (ujemny indeks). To wina klienta, nie awaria.
+            connection.sendError(WsErrorCode.BAD_FRAME, "Payload ma niedozwolone wartości");
         } catch (Exception ex) {
             // Ta sama zasada co w ApiErrorHandler: klient dostaje stały
             // komunikat, szczegóły idą wyłącznie do logu.
@@ -74,11 +90,33 @@ public class BattleWebSocketHandler extends TextWebSocketHandler {
             case "PING" -> connection.send("PONG", null);
             case "QUEUE_JOIN", "QUEUE_LEAVE" ->
                     throw new WsException(WsErrorCode.NOT_IMPLEMENTED, "Matchmaking dojdzie później");
-            case "MOVE", "SWITCH", "FORFEIT", "RESUME" ->
-                    throw new WsException(WsErrorCode.NOT_IMPLEMENTED, "Walki dojdą później");
+            case "MOVE" -> {
+                WsDtos.MoveRequest request = json.payload(frame, WsDtos.MoveRequest.class);
+                submit(connection, request.battleId(), request.turn(), new MoveAction(request.moveIndex()));
+            }
+            case "SWITCH" -> {
+                WsDtos.SwitchRequest request = json.payload(frame, WsDtos.SwitchRequest.class);
+                submit(connection, request.battleId(), request.turn(), new SwitchAction(request.benchIndex()));
+            }
+            case "FORFEIT" -> {
+                WsDtos.ForfeitRequest request = json.payload(frame, WsDtos.ForfeitRequest.class);
+                submit(connection, request.battleId(), null, new ForfeitAction());
+            }
+            case "RESUME" ->
+                    throw new WsException(WsErrorCode.NOT_IMPLEMENTED, "Wznowienie dojdzie później");
             default ->
                     throw new WsException(WsErrorCode.BAD_FRAME, "Nieznany typ ramki: " + frame.type());
         }
+    }
+
+    private void submit(WsConnection connection, UUID battleId, Integer turn, Action action) {
+        UUID trainerId = connection.trainer().id();
+        BattleSession session = sessions.require(battleId, trainerId);
+        // FORFEIT nie niesie numeru tury: poddać się można w każdej fazie.
+        int onTurn = turn != null ? turn : session.battle().getTurn();
+
+        sessions.submit(battleId, trainerId, onTurn, action)
+                .ifPresent(events -> notifier.afterAction(session, onTurn, events));
     }
 
     private void authenticate(WsConnection connection, WsDtos.AuthRequest request) {

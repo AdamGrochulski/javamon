@@ -100,11 +100,14 @@ public final class BattleEventFilter {
     }
 
     /** Procent maksymalnego HP, w górę. Zero tylko przy zerze punktów - pasek nie może kłamać o faincie. */
-    private static int pct(Battle battle, BattleEvent.PokemonRef ref, int points) {
+    public static int percentOf(int points, int maxHp) {
         if (points <= 0) {
             return 0;
         }
-        int maxHp = battle.side(ref.player()).getTeam().get(ref.teamIndex()).getMaxHp();
         return Math.max(1, (int) Math.ceil(points * 100.0 / maxHp));
+    }
+
+    private static int pct(Battle battle, BattleEvent.PokemonRef ref, int points) {
+        return percentOf(points, battle.side(ref.player()).getTeam().get(ref.teamIndex()).getMaxHp());
     }
 }

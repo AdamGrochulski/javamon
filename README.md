@@ -69,8 +69,13 @@ runs one way: `app` → `engine`.
 - **REST** - Pokédex browsing and team CRUD, with moveset legality validated
   server-side against the learnset.
 - **WebSocket** - a hand-written JSON protocol on a raw `WebSocketHandler`.
-  Token in the first frame, per-battle sequence numbers for resumption after a
-  dropped connection, per-recipient event filtering.
+  Token in the first frame, per-recipient sequence numbers so a dropped
+  connection can resume mid-battle, per-recipient event filtering, and a turn
+  timer that ends the battle when someone walks away.
+- **Battles live in Redis.** A snapshot per battle plus its event stream, each
+  action taken under a lock on that one battle, so a second instance is a config
+  change rather than a rewrite. Finished battles land in PostgreSQL with their
+  full replay, and ELO is settled there.
 
 ## Under the hood
 
@@ -160,9 +165,9 @@ tools/    data generators
 - [x] Battle engine with the full move and field mechanic set
 - [x] Auth, Pokédex and team REST API
 - [x] WebSocket protocol, handler and session registry
-- [ ] Battle sessions in Redis, full turn loop over the socket
-- [ ] Matchmaking queue
-- [ ] Replay storage and ELO ladder
+- [x] Battle sessions in Redis, full turn loop over the socket
+- [x] Matchmaking queue, turn timer, reconnect with frame replay
+- [x] Replay storage, battle history and ELO ladder
 - [ ] React + TypeScript frontend: team builder, battle screen, replay viewer
 - [ ] Docker Compose deploy behind TLS
 

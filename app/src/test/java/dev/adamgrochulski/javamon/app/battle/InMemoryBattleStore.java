@@ -1,5 +1,9 @@
 package dev.adamgrochulski.javamon.app.battle;
 
+import dev.adamgrochulski.javamon.engine.battle.BattleEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +26,18 @@ class InMemoryBattleStore implements BattleStore {
     @Override
     public void save(BattleSnapshot snapshot) {
         saved.put(snapshot.id(), snapshot);
+    }
+
+    private final Map<UUID, List<BattleEvent>> events = new ConcurrentHashMap<>();
+
+    @Override
+    public void appendEvents(UUID battleId, List<BattleEvent> batch) {
+        events.computeIfAbsent(battleId, id -> new ArrayList<>()).addAll(batch);
+    }
+
+    @Override
+    public List<BattleEvent> events(UUID battleId) {
+        return List.copyOf(events.getOrDefault(battleId, List.of()));
     }
 
     @Override

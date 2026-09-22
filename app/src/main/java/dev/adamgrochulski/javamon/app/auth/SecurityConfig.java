@@ -57,6 +57,9 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/pokemon/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/battles/history").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/battles/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/leaderboard").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated())
 

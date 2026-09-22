@@ -2,6 +2,7 @@ package dev.adamgrochulski.javamon.app.ws;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.adamgrochulski.javamon.app.battle.BattleEventMixin;
 import dev.adamgrochulski.javamon.engine.battle.BattleEvent;
 import org.springframework.stereotype.Component;
 

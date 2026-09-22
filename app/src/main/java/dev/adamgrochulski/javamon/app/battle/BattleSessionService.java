@@ -1,5 +1,6 @@
 package dev.adamgrochulski.javamon.app.battle;
 
+import dev.adamgrochulski.javamon.app.persistence.BattleResult;
 import dev.adamgrochulski.javamon.app.persistence.Team;
 import dev.adamgrochulski.javamon.app.persistence.TeamSlot;
 import dev.adamgrochulski.javamon.app.ws.WsErrorCode;
@@ -11,6 +12,7 @@ import dev.adamgrochulski.javamon.engine.rng.XorShiftRng;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -24,13 +26,16 @@ import java.util.*;
 public class BattleSessionService {
 
     private final BattleStore store;
+    private final BattleArchive archive;
     private final PokemonDex pokemonDex;
     private final MoveDex moveDex;
     private final TypeChart typeChart;
     private final SecureRandom seedSource = new SecureRandom();
 
-    public BattleSessionService(BattleStore store, PokemonDex pokemonDex, MoveDex moveDex, TypeChart typeChart) {
+    public BattleSessionService(BattleStore store, BattleArchive archive,
+                                PokemonDex pokemonDex, MoveDex moveDex, TypeChart typeChart) {
         this.store = store;
+        this.archive = archive;
         this.pokemonDex = pokemonDex;
         this.moveDex = moveDex;
         this.typeChart = typeChart;
@@ -38,15 +43,17 @@ public class BattleSessionService {
 
     /** Skład kopiowany do sesji: usunięcie drużyny w trakcie nie przerywa walki. */
     public BattleSession create(Participant p1, Team p1Team, Participant p2, Team p2Team) {
-        List<MonSnapshot> roster1 = rosterOf(p1Team);
-        List<MonSnapshot> roster2 = rosterOf(p2Team);
+        return create(p1, rosterOf(p1Team), p2, rosterOf(p2Team));
+    }
 
+    public BattleSession create(Participant p1, List<MonSnapshot> roster1,
+                                Participant p2, List<MonSnapshot> roster2) {
         // SecureRandom, nie nanoTime: czas startu walki jest odgadywalny.
         XorShiftRng rng = new XorShiftRng(seedSource.nextLong());
         Battle battle = new Battle(sideOf(roster1), sideOf(roster2), rng, typeChart);
 
         BattleSession session = new BattleSession(
-                UUID.randomUUID(), battle, rng, p1, p2, roster1, roster2);
+                UUID.randomUUID(), battle, rng, p1, p2, roster1, roster2, Instant.now());
         store.save(session.toSnapshot());
         return session;
     }
@@ -106,12 +113,13 @@ public class BattleSessionService {
             // Poddać się wolno zawsze, także gdy wisi zejście po faincie.
             if (action instanceof ForfeitAction) {
                 session.takePending();
-                return persist(session, turn, TurnResolver.resolveForfeit(battle, player));
+                return persist(session, turn, TurnResolver.resolveForfeit(battle, player),
+                        BattleResult.FORFEIT);
             }
 
             List<Player> awaiting = battle.awaitingReplacement();
             if (!awaiting.isEmpty()) {
-                return persist(session, turn, replace(battle, player, awaiting, action));
+                return persist(session, turn, replace(battle, player, awaiting, action), BattleResult.KO);
             }
 
             if (session.hasSubmitted(player)) {
@@ -128,7 +136,8 @@ public class BattleSessionService {
 
             Map<Player, Action> actions = session.takePending();
             return persist(session, turn,
-                    TurnResolver.resolve(battle, actions.get(Player.P1), actions.get(Player.P2)));
+                    TurnResolver.resolve(battle, actions.get(Player.P1), actions.get(Player.P2)),
+                    BattleResult.KO);
         });
     }
 
@@ -142,7 +151,8 @@ public class BattleSessionService {
             int turn = session.battle().getTurn();
             session.takePending();
             return persist(session, turn,
-                    TurnResolver.resolveForfeit(session.battle(), session.playerOf(trainerId)));
+                    TurnResolver.resolveForfeit(session.battle(), session.playerOf(trainerId)),
+                    BattleResult.FORFEIT);
         });
     }
 
@@ -166,16 +176,30 @@ public class BattleSessionService {
             }
 
             session.takePending();
-            return persist(session, turn, TurnResolver.resolveTimeout(battle, silent));
+            return persist(session, turn, TurnResolver.resolveTimeout(battle, silent), BattleResult.TIMEOUT);
         });
     }
 
-    private Optional<TurnOutcome> persist(BattleSession session, int turn, List<BattleEvent> events) {
-        if (events.stream().anyMatch(BattleEvent.BattleEnd.class::isInstance)) {
-            session.finish();
+    private Optional<TurnOutcome> persist(BattleSession session, int turn,
+                                          List<BattleEvent> events, BattleResult result) {
+        store.appendEvents(session.id(), events);
+
+        BattleEvent.BattleEnd end = events.stream()
+                .filter(BattleEvent.BattleEnd.class::isInstance)
+                .map(BattleEvent.BattleEnd.class::cast)
+                .findFirst()
+                .orElse(null);
+
+        if (end == null) {
+            store.save(session.toSnapshot());
+            return Optional.of(new TurnOutcome(session, turn, events, null));
         }
+
+        session.finish();
         store.save(session.toSnapshot());
-        return Optional.of(new TurnOutcome(session, turn, events));
+        // Archiwum dostaje całą historię, nie tylko ostatnią turę - replay to cała walka.
+        BattleSummary summary = archive.archive(session, result, end.winner(), store.events(session.id()));
+        return Optional.of(new TurnOutcome(session, turn, events, summary));
     }
 
     /** Po faincie dozwolony jest wyłącznie SWITCH i tylko od gracza, który stracił Pokémona. */
@@ -246,12 +270,12 @@ public class BattleSessionService {
         battle.restore(snapshot.state());
 
         BattleSession session = new BattleSession(snapshot.id(), battle, rng,
-                snapshot.p1(), snapshot.p2(), snapshot.p1Team(), snapshot.p2Team());
+                snapshot.p1(), snapshot.p2(), snapshot.p1Team(), snapshot.p2Team(), snapshot.startedAt());
         session.restorePending(snapshot.pending(), snapshot.finished());
         return session;
     }
 
-    private List<MonSnapshot> rosterOf(Team team) {
+    public List<MonSnapshot> rosterOf(Team team) {
         return team.getSlots().stream()
                 .sorted(Comparator.comparingInt(TeamSlot::getSlotIndex))
                 .map(slot -> new MonSnapshot(slot.getSpeciesId(), slot.getLevel(), slot.getMoves()))

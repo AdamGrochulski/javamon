@@ -3,6 +3,7 @@ package dev.adamgrochulski.javamon.app.ws;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.adamgrochulski.javamon.app.battle.BattleEventMixin;
 import dev.adamgrochulski.javamon.engine.battle.BattleEvent;
 import dev.adamgrochulski.javamon.engine.battle.Player;
 import dev.adamgrochulski.javamon.engine.model.Weather;

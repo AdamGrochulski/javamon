@@ -5,6 +5,7 @@ import dev.adamgrochulski.javamon.engine.battle.Battle;
 import dev.adamgrochulski.javamon.engine.battle.Player;
 import dev.adamgrochulski.javamon.engine.rng.XorShiftRng;
 
+import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +24,13 @@ public final class BattleSession {
     private final Participant p2;
     private final List<MonSnapshot> p1Team;
     private final List<MonSnapshot> p2Team;
+    private final Instant startedAt;
 
     private final Map<Player, Action> pending = new EnumMap<>(Player.class);
     private boolean finished;
 
     public BattleSession(UUID id, Battle battle, XorShiftRng rng, Participant p1, Participant p2,
-                         List<MonSnapshot> p1Team, List<MonSnapshot> p2Team) {
+                         List<MonSnapshot> p1Team, List<MonSnapshot> p2Team, Instant startedAt) {
         this.id = id;
         this.battle = battle;
         this.rng = rng;
@@ -36,9 +38,11 @@ public final class BattleSession {
         this.p2 = p2;
         this.p1Team = p1Team;
         this.p2Team = p2Team;
+        this.startedAt = startedAt;
     }
 
     public UUID id() { return id; }
+    public Instant startedAt() { return startedAt; }
     public Battle battle() { return battle; }
 
     /** Strona tego trenera albo null, jeśli nie jest uczestnikiem walki. */
@@ -78,7 +82,7 @@ public final class BattleSession {
         pending.forEach((player, action) -> saved.put(player, ActionSnapshot.of(action)));
 
         return new BattleSnapshot(id, p1, p2, p1Team, p2Team,
-                rng.state(), battle.state(), saved, finished);
+                rng.state(), battle.state(), saved, finished, startedAt);
     }
 
     /** Wołane wyłącznie przy odtwarzaniu z zapisu, zanim sesja wyjdzie z serwisu. */

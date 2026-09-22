@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /** Rozsyłanie ramek walki. Każdy gracz dostaje własną wersję: eventy filtrowane, seq własne. */
@@ -53,16 +54,17 @@ public class BattleNotifier {
                     session.id(), turn, BattleEventFilter.forPlayer(session.battle(), player, events)));
         }
 
-        // Po evencie, nie po isOver(): poddanie nie kładzie żadnej strony.
-        BattleEvent.BattleEnd end = endOf(events);
-        if (end == null) {
+        if (!outcome.ended()) {
             requestNext(session);
             return;
         }
-        String reason = events.stream().anyMatch(e -> e instanceof BattleEvent.Forfeit) ? "forfeit" : "faint";
+
+        BattleSummary summary = outcome.summary();
+        String reason = summary.result().name().toLowerCase(Locale.ROOT);
         for (Player player : Player.values()) {
-            send(session, player, "BATTLE_END",
-                    new WsDtos.BattleEndPayload(session.id(), end.winner(), reason, null, null));
+            send(session, player, "BATTLE_END", new WsDtos.BattleEndPayload(
+                    session.id(), summary.winner(), reason,
+                    summary.ratingBefore().get(player), summary.ratingAfter().get(player)));
         }
         frames.forget(session.id());
     }
@@ -114,14 +116,6 @@ public class BattleNotifier {
         ServerFrame frame = frames.record(session.id(), player, type, payload);
         registry.find(session.participant(player).trainerId())
                 .ifPresent(connection -> connection.send(frame));
-    }
-
-    private static BattleEvent.BattleEnd endOf(List<BattleEvent> events) {
-        return events.stream()
-                .filter(BattleEvent.BattleEnd.class::isInstance)
-                .map(BattleEvent.BattleEnd.class::cast)
-                .findFirst()
-                .orElse(null);
     }
 
     private WsDtos.BattleStart battleStart(BattleSession session, Player player) {

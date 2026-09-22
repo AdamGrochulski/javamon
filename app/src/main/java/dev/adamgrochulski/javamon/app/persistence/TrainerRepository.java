@@ -10,6 +10,9 @@ public interface TrainerRepository extends JpaRepository<Trainer, UUID> {
 
     Optional<Trainer> findByUsernameIgnoreCase(String username);
 
+    /** Ranking: bez gości i bez skasowanych kont, pod indeks trainers_leaderboard_idx. */
+    List<Trainer> findTop20ByGuestFalseAndDeletedAtIsNullOrderByRatingDesc();
+
     boolean existsByUsernameIgnoreCase(String username);
 
     List<Trainer> findTop50ByGuestFalseAndDeletedAtIsNullOrderByRatingDesc();

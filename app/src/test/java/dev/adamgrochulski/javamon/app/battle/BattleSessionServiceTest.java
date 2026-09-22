@@ -27,7 +27,7 @@ class BattleSessionServiceTest {
     private static final TypeChart CHART = new TypeChart();
 
     private final InMemoryBattleStore store = new InMemoryBattleStore();
-    private final BattleSessionService service = new BattleSessionService(store, POKEDEX, MOVES, CHART);
+    private final BattleSessionService service = new BattleSessionService(store, new NoopBattleArchive(), POKEDEX, MOVES, CHART);
 
     private final UUID p1 = UUID.randomUUID();
     private final UUID p2 = UUID.randomUUID();

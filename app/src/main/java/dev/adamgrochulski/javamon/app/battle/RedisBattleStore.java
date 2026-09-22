@@ -2,6 +2,7 @@ package dev.adamgrochulski.javamon.app.battle;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.adamgrochulski.javamon.engine.battle.BattleEvent;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -32,10 +33,12 @@ public class RedisBattleStore implements BattleStore {
 
     private final StringRedisTemplate redis;
     private final ObjectMapper json;
+    private final BattleEventJson eventJson;
 
-    RedisBattleStore(StringRedisTemplate redis, ObjectMapper json) {
+    RedisBattleStore(StringRedisTemplate redis, ObjectMapper json, BattleEventJson eventJson) {
         this.redis = redis;
         this.json = json;
+        this.eventJson = eventJson;
     }
 
     @Override
@@ -58,6 +61,23 @@ public class RedisBattleStore implements BattleStore {
         } catch (JacksonException ex) {
             throw new IllegalStateException("Nie da się zapisać walki " + snapshot.id(), ex);
         }
+    }
+
+    @Override
+    public void appendEvents(UUID battleId, List<BattleEvent> events) {
+        if (events.isEmpty()) {
+            return;
+        }
+        String key = eventsKey(battleId);
+        // RPUSH, a nie przepisanie całej listy: dopisanie jest O(1) niezależnie od długości walki.
+        redis.opsForList().rightPushAll(key, events.stream().map(eventJson::writeOne).toList());
+        redis.expire(key, TTL);
+    }
+
+    @Override
+    public List<BattleEvent> events(UUID battleId) {
+        List<String> raw = redis.opsForList().range(eventsKey(battleId), 0, -1);
+        return raw == null ? List.of() : raw.stream().map(eventJson::readOne).toList();
     }
 
     @Override
@@ -93,5 +113,9 @@ public class RedisBattleStore implements BattleStore {
 
     private static String key(UUID battleId) {
         return "battle:" + battleId;
+    }
+
+    private static String eventsKey(UUID battleId) {
+        return "battle:events:" + battleId;
     }
 }

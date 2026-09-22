@@ -64,6 +64,42 @@ public class FinishedBattle implements Persistable<UUID> {
     protected FinishedBattle() {
     }
 
+    public FinishedBattle(UUID id, Trainer player1, Trainer player2,
+                          String player1Name, String player2Name,
+                          int player1RatingBefore, int player2RatingBefore,
+                          int player1RatingAfter, int player2RatingAfter,
+                          Trainer winner, BattleResult result, int turns,
+                          Instant startedAt, Instant finishedAt) {
+        this.id = id;
+        this.player1 = player1;
+        this.player2 = player2;
+        this.player1Name = player1Name;
+        this.player2Name = player2Name;
+        this.player1RatingBefore = player1RatingBefore;
+        this.player2RatingBefore = player2RatingBefore;
+        this.player1RatingAfter = player1RatingAfter;
+        this.player2RatingAfter = player2RatingAfter;
+        this.winner = winner;
+        this.result = result;
+        this.turns = turns;
+        this.startedAt = startedAt;
+        this.finishedAt = finishedAt;
+    }
+
+    public Trainer getPlayer1() { return player1; }
+    public Trainer getPlayer2() { return player2; }
+    public String getPlayer1Name() { return player1Name; }
+    public String getPlayer2Name() { return player2Name; }
+    public int getPlayer1RatingBefore() { return player1RatingBefore; }
+    public int getPlayer2RatingBefore() { return player2RatingBefore; }
+    public int getPlayer1RatingAfter() { return player1RatingAfter; }
+    public int getPlayer2RatingAfter() { return player2RatingAfter; }
+    public Trainer getWinner() { return winner; }
+    public BattleResult getResult() { return result; }
+    public int getTurns() { return turns; }
+    public Instant getStartedAt() { return startedAt; }
+    public Instant getFinishedAt() { return finishedAt; }
+
     @Override
     public UUID getId() { return id; }
 

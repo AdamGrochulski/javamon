@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white&labelColor=22223B" alt="PostgreSQL 16" />
   <img src="https://img.shields.io/badge/Redis-7-FF4438?style=flat-square&logo=redis&logoColor=white&labelColor=22223B" alt="Redis 7" />
   <img src="https://img.shields.io/badge/React-planned-61DAFB?style=flat-square&logo=react&logoColor=black&labelColor=22223B" alt="React" />
-  <img src="https://img.shields.io/badge/tests-251-E6482E?style=flat-square&labelColor=22223B" alt="tests" />
+  <img src="https://img.shields.io/badge/tests-255-E6482E?style=flat-square&labelColor=22223B" alt="tests" />
 
 </div>
 
@@ -116,7 +116,7 @@ Requires JDK 21+ and Docker.
 
 ```bash
 docker compose up -d                  # Postgres + Redis
-./mvnw test                           # full build, 251 tests
+./mvnw test                           # full build, 255 tests
 ./mvnw install -DskipTests            # publishes javamon-engine to ~/.m2
 ./mvnw -pl app spring-boot:run        # backend on :8080
 ```

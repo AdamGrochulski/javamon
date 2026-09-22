@@ -94,6 +94,12 @@ public class ApiErrorHandler extends ResponseEntityExceptionHandler {
                 new ApiError("invalid_credentials", ex.getMessage()));
     }
 
+    @ExceptionHandler(AuthExceptions.TooManyAttempts.class)
+    ResponseEntity<ApiError> onTooManyAttempts(AuthExceptions.TooManyAttempts ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(
+                new ApiError("too_many_attempts", ex.getMessage()));
+    }
+
     /**
      * Siatka bezpieczeństwa. Komunikat jest stały i bezużyteczny dla atakującego;
      * szczegóły idą wyłącznie do logu. Wyciek nazwy klasy, zapytania SQL albo

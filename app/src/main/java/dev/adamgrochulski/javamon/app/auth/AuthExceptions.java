@@ -26,4 +26,12 @@ public final class AuthExceptions {
             super("Nieprawidłowy nick lub hasło");
         }
     }
+
+    /** Limit prób. Komunikat nie zdradza, który licznik się przepełnił. */
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public static class TooManyAttempts extends RuntimeException {
+        public TooManyAttempts(String message) {
+            super(message);
+        }
+    }
 }

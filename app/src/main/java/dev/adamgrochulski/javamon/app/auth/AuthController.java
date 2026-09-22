@@ -3,6 +3,7 @@ package dev.adamgrochulski.javamon.app.auth;
 import dev.adamgrochulski.javamon.app.auth.AuthDtos.AuthResponse;
 import dev.adamgrochulski.javamon.app.auth.AuthDtos.LoginRequest;
 import dev.adamgrochulski.javamon.app.auth.AuthDtos.RegisterRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,8 +26,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request.username(), request.password());
+    public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        return authService.login(request.username(), request.password(), ipOf(http));
     }
 
     /**
@@ -35,7 +36,15 @@ public class AuthController {
      * podlega sprzątaniu — patrz docs/security.md, pozycja B2.
      */
     @PostMapping("/guest")
-    public AuthResponse guest() {
-        return authService.guest();
+    public AuthResponse guest(HttpServletRequest http) {
+        return authService.guest(ipOf(http));
+    }
+
+    /**
+     * Prawdziwy adres klienta, nie proxy: rozwija go Spring dzięki
+     * forward-headers-strategy=framework. Bez tego limity objęłyby wszystkich naraz.
+     */
+    private static String ipOf(HttpServletRequest request) {
+        return request.getRemoteAddr();
     }
 }

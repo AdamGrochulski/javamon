@@ -24,11 +24,14 @@ public class AuthService {
     private final TrainerRepository trainers;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthRateLimits rateLimits;
 
-    AuthService(TrainerRepository trainers, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    AuthService(TrainerRepository trainers, PasswordEncoder passwordEncoder, JwtService jwtService,
+                AuthRateLimits rateLimits) {
         this.trainers = trainers;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.rateLimits = rateLimits;
     }
 
     @Transactional
@@ -50,7 +53,11 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public AuthResponse login(String username, String rawPassword) {
+    public AuthResponse login(String username, String rawPassword, String ip) {
+        // Przed porównaniem hasła: BCrypt kosztuje ~80 ms, więc sam w sobie
+        // jest kosztem, którym da się zająć serwer.
+        rateLimits.checkLogin(username, ip);
+
         Trainer trainer = trainers.findByUsernameIgnoreCase(username)
                 .filter(Trainer::isActive)
                 .filter(candidate -> !candidate.isGuest())
@@ -60,15 +67,22 @@ public class AuthService {
         boolean matches = passwordEncoder.matches(rawPassword, hash);
 
         if (trainer == null || !matches) {
+            rateLimits.loginFailed(username, ip);
             throw new AuthExceptions.InvalidCredentials();
         }
+        rateLimits.loginSucceeded(username);
         return respond(trainer);
     }
 
     @Transactional
-    public AuthResponse guest() {
+    public AuthResponse guest(String ip) {
+        // Jedyny endpoint zapisujący do bazy bez uwierzytelnienia.
+        rateLimits.checkGuest(ip);
+
         String username = "Gość-" + UUID.randomUUID().toString().substring(0, 8);
-        return respond(trainers.save(Trainer.guest(username)));
+        AuthResponse response = respond(trainers.save(Trainer.guest(username)));
+        rateLimits.guestCreated(ip);
+        return response;
     }
 
     private AuthResponse respond(Trainer trainer) {

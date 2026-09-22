@@ -6,6 +6,11 @@ javamon:
     guest-ttl: PT10M
   battle:
     action-timeout: PT30S
+  security:
+    # Luźno, żeby zwykłe testy nie wpadały na limit; testy limitów nadpisują to same.
+    login-failures-per-user: 1000
+    login-failures-per-ip: 1000
+    guests-per-ip: 1000
   ws:
     # Krótko, żeby test timeoutu nie trwał dziesięciu sekund.
     auth-timeout: PT1S

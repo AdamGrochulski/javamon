@@ -47,6 +47,14 @@ javamon:
   battle:
     # Brak akcji od gracza w tym czasie -> auto-forfeit.
     action-timeout: PT30S
+  security:
+    # Limity antyprzemiałowe, patrz docs/security.md (B1, B2).
+    login-failures-per-user: 10
+    login-failures-per-ip: 30
+    login-window: PT15M
+    guests-per-ip: 5
+    guest-window: PT1H
+    guest-retention: PT24H
   ws:
     # Ile czasu połączenie ma na przysłanie ramki AUTH, zanim je zamkniemy (4408).
     auth-timeout: PT10S
